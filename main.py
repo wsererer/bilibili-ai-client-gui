@@ -84,7 +84,14 @@ async def run_gui_with_services():
         logger.info(f"auto_start is True, config.bili_auth: {config.get('bili_auth', '')[:30] if config.get('bili_auth') else 'EMPTY'}...")
         def wrapped_callback(msg):
             logger.info(f"Callback triggered for msg: {msg.get('msg_id')}")
-            asyncio.create_task(process_new_message(msg))
+            # Process message synchronously since we're calling from a non-async thread
+            try:
+                loop = asyncio.new_event_loop()
+                asyncio.set_event_loop(loop)
+                loop.run_until_complete(process_new_message(msg))
+                loop.close()
+            except Exception as e:
+                logger.error(f"Error processing message: {e}")
         message_poller.set_callback(wrapped_callback)
         logger.info("Starting message_poller...")
         message_poller.start()
