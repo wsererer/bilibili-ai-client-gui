@@ -110,6 +110,15 @@ class Database:
             return cursor.fetchone() is not None
 
     @staticmethod
+    def get_not_whitelisted_messages() -> List[Dict[str, Any]]:
+        with get_db() as conn:
+            cursor = conn.cursor()
+            cursor.execute("""
+                SELECT * FROM messages WHERE status = 'not_whitelisted' ORDER BY received_at DESC
+            """)
+            return [dict(row) for row in cursor.fetchall()]
+
+    @staticmethod
     def add_message(msg_id: str, sender_uid: str, sender_name: str, bv_id: str, content: str = None) -> bool:
         try:
             with get_db() as conn:

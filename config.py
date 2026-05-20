@@ -44,6 +44,18 @@ class Config:
         for key, value in DEFAULT_CONFIG.items():
             if key not in self._config:
                 self._config[key] = value
+        self._load_cookie_from_file()
+
+    def _load_cookie_from_file(self):
+        cookie_file = APP_DATA_DIR / "login_cookie.txt"
+        if cookie_file.exists():
+            try:
+                cookie = cookie_file.read_text(encoding='utf-8').strip()
+                if cookie and len(cookie) > 50 and "SESSDATA" in cookie:
+                    if not self._config.get("bili_auth") or "SESSDATA" not in self._config.get("bili_auth", ""):
+                        self._config["bili_auth"] = cookie
+            except Exception:
+                pass
 
     def save(self):
         with open(CONFIG_FILE, "w", encoding="utf-8") as f:

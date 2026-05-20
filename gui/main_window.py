@@ -292,6 +292,14 @@ class MainWindow:
             self.uid_entry.delete(0, tk.END)
             self.username_entry.delete(0, tk.END)
             self._set_status(f"已添加白名单: {uid}")
+            try:
+                import main
+                loop = asyncio.new_event_loop()
+                asyncio.set_event_loop(loop)
+                loop.run_until_complete(main.reprocess_blocked_messages())
+                loop.close()
+            except Exception as e:
+                logger.error(f"重新处理消息失败: {e}")
         else:
             messagebox.showerror("错误", "添加失败")
 

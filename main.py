@@ -35,19 +35,15 @@ async def process_new_message(msg: dict):
         logger.info("No bv_id and no content, skipping")
         return
 
-    is_whitelisted = database.is_whitelist(sender_uid)
-    logger.info(f"sender_uid: {sender_uid}, is_whitelisted: {is_whitelisted}")
-
-    if sender_uid and not is_whitelisted:
-        logger.info(f"用户 {sender_uid} 不在白名单，跳过")
-        return
-
     msg_id = msg.get("msg_id", f"{bv_id}_{sender_uid}" if bv_id else msg.get("content", "")[:20])
 
     existing = database.get_message(msg_id)
-    if existing and existing.get("status") != "pending":
+    if existing and existing.get("status") not in ("pending", "not_whitelisted"):
         logger.info(f"消息 {msg_id} 已处理过 (status={existing.get('status')})，跳过")
         return
+
+    is_whitelisted = database.is_whitelist(sender_uid)
+    logger.info(f"sender_uid: {sender_uid}, is_whitelisted: {is_whitelisted}")
 
     database.add_message(
         msg_id=msg_id,
@@ -56,6 +52,11 @@ async def process_new_message(msg: dict):
         bv_id=bv_id or "unknown",
         content=msg.get("content", "")
     )
+
+    if sender_uid and not is_whitelisted:
+        database.update_message_status(msg_id, "not_whitelisted")
+        logger.info(f"用户 {sender_uid} 不在白名单，已记录")
+        return
     logger.info(f"Message added to DB: {msg_id}")
 
     logger.info(f"处理消息: {bv_id or 'N/A'} from {msg.get('sender_name', sender_uid)}")
@@ -80,6 +81,26 @@ async def process_new_message(msg: dict):
         else:
             database.update_message_status(msg_id, "no_subtitle")
             logger.warning(f"无法获取字幕: {bv_id}")
+
+
+async def reprocess_blocked_messages():
+    blocked = database.get_not_whitelisted_messages()
+    if not blocked:
+        return
+    logger.info(f"重新处理 {len(blocked)} 条被拦截的消息")
+    for msg in blocked:
+        msg_id = msg.get("id", "")
+        sender_uid = msg.get("sender_uid", "")
+        if database.is_whitelist(sender_uid):
+            database.update_message_status(msg_id, "pending")
+            logger.info(f"消息 {msg_id} 用户 {sender_uid} 已加入白名单，重新处理")
+            await process_new_message({
+                "msg_id": msg_id,
+                "bv_id": msg.get("bv_id", ""),
+                "sender_uid": sender_uid,
+                "sender_name": msg.get("sender_name", ""),
+                "content": msg.get("content", ""),
+            })
 
 
 async def run_gui_with_services():

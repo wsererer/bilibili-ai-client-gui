@@ -229,6 +229,8 @@ class MessagePoller:
                 time.sleep(10)
                 continue
 
+            interval = config.get("polling_interval", 30)
+
             try:
                 headers = {
                     "Cookie": bili_auth,
@@ -286,7 +288,7 @@ class MessagePoller:
             except Exception as e:
                 logger.error(f"Sync poll error: {e}")
 
-            time.sleep(30)
+            time.sleep(interval)
 
 
 message_poller = MessagePoller()
