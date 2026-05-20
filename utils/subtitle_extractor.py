@@ -205,6 +205,41 @@ def fetch_info(url: str, cookie: Optional[str] = None) -> dict:
     raise ExtractionError(f"获取视频信息失败（重试3次）: {last_error}")
 
 
+def _fetch_video_info_from_api(
+    url: str,
+    cookie: Optional[str],
+    log: LogFn,
+) -> Optional[dict]:
+    if httpx is None:
+        return None
+
+    bv_id = url.split("/video/")[-1].split("?")[0].strip()
+    if not bv_id.startswith("BV"):
+        return None
+
+    headers = {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+        "Referer": "https://www.bilibili.com",
+    }
+    if cookie:
+        headers["Cookie"] = cookie
+
+    try:
+        view_url = "https://api.bilibili.com/x/web-interface/view"
+        resp = httpx.get(view_url, params={"bvid": bv_id}, headers=headers, timeout=15)
+        data = resp.json()
+        video_data = data.get("data", {})
+        title = video_data.get("title", "")
+        cid = video_data.get("cid")
+        if title:
+            log(f"通过 B站 API 获取视频信息：{title}")
+            return {"title": title, "id": bv_id, "cid": cid}
+    except Exception as exc:
+        log(f"B站 API 获取视频信息失败：{exc}")
+
+    return None
+
+
 def _fetch_subtitles_from_bilibili_api(
     url: str,
     cookie: Optional[str],
@@ -540,14 +575,24 @@ class SubtitleExtractor:
 
         langs = parse_langs(preferred_langs)
         self._log(f"读取视频信息: {url}")
-        try:
-            info = fetch_info(url, cookie=self.cookie)
-        except Exception as e:
-            logger.error(f"获取视频信息失败: {e}")
-            return None
 
-        title = str(info.get("title") or "Bilibili Video")
-        video_id = str(info.get("id") or "unknown")
+        title = "Bilibili Video"
+        video_id = "unknown"
+
+        api_info = _fetch_video_info_from_api(url, self.cookie, self._log)
+        if api_info:
+            title = str(api_info.get("title") or title)
+            video_id = str(api_info.get("id") or video_id)
+        else:
+            self._log("B站 API 获取信息失败，尝试 yt-dlp...")
+            try:
+                info = fetch_info(url, cookie=self.cookie)
+                title = str(info.get("title") or title)
+                video_id = str(info.get("id") or video_id)
+            except Exception as e:
+                logger.error(f"获取视频信息失败: {e}")
+                return None
+
         self._log(f"标题：{title}")
         self._log(f"视频 ID：{video_id}")
 
