@@ -158,15 +158,15 @@ class MessagePoller:
             return []
 
     async def poll_loop(self):
-        bili_auth = config.get("bili_auth", "")
-        if not bili_auth:
-            logger.warning("未设置 bili_auth，无法获取消息")
-            await asyncio.sleep(5)
-            return
-
-        interval = config.get("polling_interval", 30)
-
         while self.running:
+            bili_auth = config.get("bili_auth", "")
+            if not bili_auth:
+                logger.warning("未设置 bili_auth，无法获取消息")
+                await asyncio.sleep(5)
+                continue
+
+            interval = config.get("polling_interval", 30)
+
             try:
                 dynamic_msgs = await self.getdynamic(bili_auth)
                 mention_msgs = await self.get_mentions(bili_auth)
