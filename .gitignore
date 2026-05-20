@@ -48,9 +48,10 @@ htmlcov/
 *.log
 logs/
 
-# Data (runtime credentials)
-data/
-*.db
+# EXE and Packages (distributed via GitHub Releases)
+*.exe
+*.zip
+*.rar
 
 # Whisper Model (download at runtime)
 whisper_model/blobs/

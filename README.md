@@ -126,6 +126,14 @@ pyinstaller bilibili_ai_client.spec
 - yt-dlp >= 2024.0.0
 - faster-whisper >= 1.0.0
 
+## 下载 exe (免安装)
+
+直接从 GitHub Releases 下载打包好的 Windows 可执行文件：
+
+📦 **下载链接**: [BilibiliAIClient-win.zip](https://github.com/wsererer/bilibili-ai-client-gui/releases/latest)
+
+解压后直接运行 `BilibiliAIClient.exe` 即可，无需安装 Python 环境。
+
 ## 许可证
 
 MIT License - 详见 [LICENSE](LICENSE)
