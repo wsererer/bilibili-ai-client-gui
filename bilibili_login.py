@@ -252,12 +252,8 @@ def poll_login():
 
 
 def get_config_path():
-    import sys
-    if getattr(sys, '_MEIPASS', False):
-        base_dir = Path(sys._MEIPASS).parent
-    else:
-        base_dir = Path(__file__).parent
-    return base_dir / "data" / "login_cookie.txt"
+    from utils.app_data import APP_DATA_DIR
+    return APP_DATA_DIR / "login_cookie.txt"
 
 def save_cookie():
     cookie = LOGIN_DATA.get("cookie")
@@ -269,7 +265,6 @@ def save_cookie():
 
             cookie_file = get_config_path()
             logger.info(f"Saving cookie to: {cookie_file}")
-            cookie_file.parent.mkdir(exist_ok=True)
             cookie_file.write_text(cookie, encoding='utf-8')
             logger.info(f"Cookie saved successfully, file exists: {cookie_file.exists()}")
 

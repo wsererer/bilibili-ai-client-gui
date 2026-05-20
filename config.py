@@ -3,11 +3,9 @@ import os
 from pathlib import Path
 from typing import Optional, Dict, Any
 
-APP_DIR = Path(__file__).parent
-DATA_DIR = APP_DIR / "data"
-DATA_DIR.mkdir(exist_ok=True)
+from utils.app_data import APP_DATA_DIR
 
-CONFIG_FILE = DATA_DIR / "config.json"
+CONFIG_FILE = APP_DATA_DIR / "config.json"
 
 DEFAULT_CONFIG = {
     "language": "zh",

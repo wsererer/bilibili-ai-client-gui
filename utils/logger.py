@@ -2,16 +2,9 @@ import sys
 from pathlib import Path
 from loguru import logger as _logger
 
-def get_log_file():
-    if getattr(sys, '_MEIPASS', False):
-        base_dir = Path(sys._MEIPASS).parent
-    else:
-        base_dir = Path(__file__).parent.parent
-    log_dir = base_dir / "data"
-    log_dir.mkdir(exist_ok=True)
-    return log_dir / "app.log"
+from utils.app_data import APP_DATA_DIR
 
-LOG_FILE = get_log_file()
+LOG_FILE = APP_DATA_DIR / "app.log"
 
 _initialized = False
 

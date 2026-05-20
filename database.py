@@ -4,8 +4,9 @@ from typing import Optional, List, Dict, Any
 from datetime import datetime, date
 from contextlib import contextmanager
 
-APP_DIR = Path(__file__).parent
-DB_FILE = APP_DIR / "data" / "bilibili_client.db"
+from utils.app_data import APP_DATA_DIR
+
+DB_FILE = APP_DATA_DIR / "bilibili_client.db"
 
 
 @contextmanager
