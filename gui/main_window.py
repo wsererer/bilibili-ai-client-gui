@@ -416,7 +416,8 @@ class MainWindow:
 
         def check_login():
             try:
-                cookie_file = Path(__file__).parent.parent / "data" / "login_cookie.txt"
+                from utils.app_data import APP_DATA_DIR
+                cookie_file = APP_DATA_DIR / "login_cookie.txt"
                 if cookie_file.exists():
                     cookie = cookie_file.read_text(encoding='utf-8').strip()
                     if cookie:

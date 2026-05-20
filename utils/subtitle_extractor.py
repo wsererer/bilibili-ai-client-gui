@@ -502,13 +502,14 @@ def save_transcript(output_dir: Path, title: str, text: str) -> Path:
 
 class SubtitleExtractor:
     def __init__(self, cookie: Optional[str] = None, proxy: Optional[str] = None):
+        from utils.app_data import APP_DATA_DIR
         if cookie is None:
-            cookie_path = Path("data/login_cookie.txt")
+            cookie_path = APP_DATA_DIR / "login_cookie.txt"
             if cookie_path.exists():
                 cookie = cookie_path.read_text().strip()
         self.cookie = cookie if cookie and len(cookie) > 50 else None
         self.proxy = proxy
-        self.output_dir = Path("data/subtitles")
+        self.output_dir = APP_DATA_DIR / "subtitles"
         self.output_dir.mkdir(parents=True, exist_ok=True)
         
         if proxy:
