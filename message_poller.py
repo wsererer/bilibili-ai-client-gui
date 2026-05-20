@@ -95,6 +95,7 @@ class MessagePoller:
                     headers=headers
                 )
                 logger.info(f"Response status: {response.status_code}")
+                logger.info(f"Response text: {response.text[:500]}")
                 data = response.json()
 
                 if data.get("code") != 0:
