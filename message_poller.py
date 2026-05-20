@@ -220,13 +220,13 @@ class MessagePoller:
 
     def _run_sync_poll(self):
         import time
-        import httpx
         logger.info("sync poll thread started")
+        processed_ids = set()
         while self.running:
             bili_auth = config.get("bili_auth", "")
-            if not bili_auth:
-                logger.warning("未设置 bili_auth，无法获取消息")
-                time.sleep(5)
+            if not bili_auth or "SESSDATA" not in bili_auth:
+                logger.warning(f"bili_auth 无效（长度: {len(bili_auth)}），等待重新登录...")
+                time.sleep(10)
                 continue
 
             try:
@@ -235,13 +235,11 @@ class MessagePoller:
                     "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
                     "Referer": "https://www.bilibili.com/"
                 }
-                logger.info("Calling /x/msgfeed/at API...")
                 response = requests.get(
                     f"{self.base_url}/x/msgfeed/at",
                     headers=headers,
                     timeout=30
                 )
-                logger.info(f"API response status: {response.status_code}")
                 data = response.json()
 
                 if data.get("code") != 0:
@@ -250,13 +248,13 @@ class MessagePoller:
                     continue
 
                 items = data.get("data", {}).get("items", [])
-                logger.info(f"Got {len(items)} items from at feed")
-
-                messages = []
+                new_messages = []
                 for item in items:
+                    msg_id = str(item.get("id", ""))
+                    if msg_id in processed_ids:
+                        continue
                     user_info = item.get("user", {})
                     item_content = item.get("item", {})
-                    msg_id = str(item.get("id", ""))
                     sender_uid = str(user_info.get("mid", ""))
                     sender_name = user_info.get("nickname", "")
                     content = item_content.get("source_content", "")
@@ -267,7 +265,7 @@ class MessagePoller:
                         match = re.search(r'BV[\w]+', uri)
                         if match:
                             bv_id = match.group(0)
-                    messages.append({
+                    new_messages.append({
                         "msg_id": msg_id,
                         "bv_id": bv_id,
                         "sender_uid": sender_uid,
@@ -276,11 +274,14 @@ class MessagePoller:
                         "type": "at"
                     })
 
-                if messages:
-                    logger.info(f"Found {len(messages)} @ messages, calling callback")
-                    for msg in messages:
+                if new_messages:
+                    logger.info(f"发现 {len(new_messages)} 条新@消息")
+                    for msg in new_messages:
+                        processed_ids.add(msg["msg_id"])
                         if self.callback:
                             self.callback(msg)
+                else:
+                    logger.debug("无新@消息")
 
             except Exception as e:
                 logger.error(f"Sync poll error: {e}")

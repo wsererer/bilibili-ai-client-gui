@@ -255,14 +255,12 @@ class MainWindow:
         ttk.Button(settings_frame, text="保存设置", command=self._save_settings).pack(pady=10)
 
     def _save_settings(self):
-        auth = self.auth_entry.get("1.0", tk.END).strip()
         interval = self.interval_entry.get().strip()
         trigger = self.trigger_var.get()
         webhook = self.webhook_entry.get().strip()
         port = self.port_entry.get().strip()
         auto_start = self.auto_start_var.get()
 
-        config.set("bili_auth", auth)
         try:
             config.set("polling_interval", int(interval))
         except ValueError:

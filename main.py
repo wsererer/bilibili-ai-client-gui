@@ -43,6 +43,12 @@ async def process_new_message(msg: dict):
         return
 
     msg_id = msg.get("msg_id", f"{bv_id}_{sender_uid}" if bv_id else msg.get("content", "")[:20])
+
+    existing = database.get_message(msg_id)
+    if existing and existing.get("status") != "pending":
+        logger.info(f"消息 {msg_id} 已处理过 (status={existing.get('status')})，跳过")
+        return
+
     database.add_message(
         msg_id=msg_id,
         sender_uid=sender_uid,

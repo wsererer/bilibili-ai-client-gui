@@ -132,6 +132,14 @@ class Database:
             return [dict(row) for row in cursor.fetchall()]
 
     @staticmethod
+    def get_message(msg_id: str) -> Optional[Dict[str, Any]]:
+        with get_db() as conn:
+            cursor = conn.cursor()
+            cursor.execute("SELECT * FROM messages WHERE id = ?", (msg_id,))
+            row = cursor.fetchone()
+            return dict(row) if row else None
+
+    @staticmethod
     def update_message_status(msg_id: str, status: str):
         with get_db() as conn:
             cursor = conn.cursor()
