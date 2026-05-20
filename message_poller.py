@@ -1,5 +1,7 @@
 import httpx
 import asyncio
+import requests
+import threading
 from typing import Optional, Callable
 from utils.logger import logger
 from config import config
@@ -205,15 +207,85 @@ class MessagePoller:
         if self.running:
             return
         self.running = True
-        self.task = asyncio.create_task(self.poll_loop())
+        import threading
+        self.thread = threading.Thread(target=self._run_sync_poll, daemon=True)
+        self.thread.start()
         logger.info("消息轮询已启动")
 
     def stop(self):
         self.running = False
-        if self.task:
-            self.task.cancel()
-            self.task = None
+        if hasattr(self, 'thread'):
+            self.thread = None
         logger.info("消息轮询已停止")
+
+    def _run_sync_poll(self):
+        import time
+        import httpx
+        logger.info("sync poll thread started")
+        while self.running:
+            bili_auth = config.get("bili_auth", "")
+            if not bili_auth:
+                logger.warning("未设置 bili_auth，无法获取消息")
+                time.sleep(5)
+                continue
+
+            try:
+                headers = {
+                    "Cookie": bili_auth,
+                    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
+                    "Referer": "https://www.bilibili.com/"
+                }
+                logger.info("Calling /x/msgfeed/at API...")
+                response = requests.get(
+                    f"{self.base_url}/x/msgfeed/at",
+                    headers=headers,
+                    timeout=30
+                )
+                logger.info(f"API response status: {response.status_code}")
+                data = response.json()
+
+                if data.get("code") != 0:
+                    logger.warning(f"Get mentions error: {data.get('message')}")
+                    time.sleep(30)
+                    continue
+
+                items = data.get("data", {}).get("items", [])
+                logger.info(f"Got {len(items)} items from at feed")
+
+                messages = []
+                for item in items:
+                    user_info = item.get("user", {})
+                    item_content = item.get("item", {})
+                    msg_id = str(item.get("id", ""))
+                    sender_uid = str(user_info.get("mid", ""))
+                    sender_name = user_info.get("nickname", "")
+                    content = item_content.get("source_content", "")
+                    uri = item_content.get("uri", "")
+                    bv_id = ""
+                    if uri and "video" in uri:
+                        import re
+                        match = re.search(r'BV[\w]+', uri)
+                        if match:
+                            bv_id = match.group(0)
+                    messages.append({
+                        "msg_id": msg_id,
+                        "bv_id": bv_id,
+                        "sender_uid": sender_uid,
+                        "sender_name": sender_name,
+                        "content": content,
+                        "type": "at"
+                    })
+
+                if messages:
+                    logger.info(f"Found {len(messages)} @ messages, calling callback")
+                    for msg in messages:
+                        if self.callback:
+                            self.callback(msg)
+
+            except Exception as e:
+                logger.error(f"Sync poll error: {e}")
+
+            time.sleep(30)
 
 
 message_poller = MessagePoller()
