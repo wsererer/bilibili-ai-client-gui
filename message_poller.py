@@ -159,6 +159,7 @@ class MessagePoller:
             return []
 
     async def poll_loop(self):
+        logger.info("poll_loop started")
         while self.running:
             bili_auth = config.get("bili_auth", "")
             if not bili_auth:
@@ -166,6 +167,7 @@ class MessagePoller:
                 await asyncio.sleep(5)
                 continue
 
+            logger.info(f"poll_loop iteration, bili_auth present: {bool(bili_auth)}")
             interval = config.get("polling_interval", 30)
 
             try:
@@ -180,7 +182,7 @@ class MessagePoller:
                         if self.callback:
                             self.callback(msg)
                     logger.info(f"获取到 {len(dynamic_msgs)} 条动态, {len(mention_msgs)} 条@消息")
-                elif dynamic_msgs is None or mention_msgs is None:
+                else:
                     self.retry_count += 1
                     if self.retry_count >= self.max_retries:
                         logger.error(f"连续失败 {self.max_retries} 次，等待 {(delay := self._get_retry_delay())} 秒后重试...")
