@@ -11,7 +11,7 @@ class TestOpenClawCommand:
     def test_command_trigger_builds_correct_command(self, monkeypatch):
         triggered = []
 
-        def mock_run(cmd, shell=True, capture_output=True, text=True):
+        def mock_run(cmd, capture_output=True, text=True, timeout=120):
             triggered.append(cmd)
             class Result:
                 returncode = 0
@@ -21,7 +21,7 @@ class TestOpenClawCommand:
 
         monkeypatch.setattr("subprocess.run", mock_run)
 
-        trigger = OpenClawTrigger(mode="command")
+        trigger = OpenClawTrigger()
         result = trigger.trigger(
             bv_id="BV1xxx",
             subtitle_text="测试字幕内容",
@@ -32,8 +32,8 @@ class TestOpenClawCommand:
         assert result == True
         assert len(triggered) == 1
         cmd = triggered[0]
-        assert "openclaw" in cmd.lower()
-        assert "BV1xxx" in cmd
+        assert "openclaw" in cmd[0].lower()
+        assert "BV1xxx" in str(cmd)
 
     def test_command_trigger_failure(self, monkeypatch):
         def mock_run(*args, **kwargs):
@@ -45,7 +45,7 @@ class TestOpenClawCommand:
 
         monkeypatch.setattr("subprocess.run", mock_run)
 
-        trigger = OpenClawTrigger(mode="command")
+        trigger = OpenClawTrigger()
         result = trigger.trigger(
             bv_id="BV1xxx",
             subtitle_text="测试",
@@ -55,45 +55,35 @@ class TestOpenClawCommand:
 
         assert result == False
 
-
-class TestOpenClawWebhook:
-    @pytest.mark.asyncio
-    async def test_webhook_trigger_builds_payload(self, monkeypatch):
+    def test_custom_openclaw_path(self, monkeypatch):
         triggered = []
 
-        class FakeResponse:
-            status_code = 200
+        def mock_run(cmd, capture_output=True, text=True, timeout=120):
+            triggered.append(cmd)
+            class Result:
+                returncode = 0
+                stdout = "OK"
+                stderr = ""
+            return Result()
 
-        async def mock_post(url, json=None, timeout=None):
-            triggered.append({"url": url, "json": json})
-            return FakeResponse()
+        monkeypatch.setattr("subprocess.run", mock_run)
 
-        import httpx
-        monkeypatch.setattr(httpx.AsyncClient, "post", mock_post)
-
-        trigger = OpenClawTrigger(mode="webhook", webhook_url="http://test.local/hooks")
-        result = await trigger.trigger(
+        trigger = OpenClawTrigger()
+        trigger.set_openclaw_path("/custom/path/openclaw")
+        result = trigger.trigger(
             bv_id="BV1xxx",
-            subtitle_text="测试字幕",
-            sender_uid="123456",
-            sender_name="测试用户"
+            subtitle_text="测试",
+            sender_uid="123",
+            sender_name="用户"
         )
 
         assert result == True
-        assert len(triggered) == 1
-        assert triggered[0]["url"] == "http://test.local/hooks"
-        assert "BV1xxx" in str(triggered[0]["json"])
+        assert triggered[0][0] == "/custom/path/openclaw"
 
-
-class TestOpenClawConnection:
-    def test_check_connection_timeout(self, monkeypatch):
-        import httpx
-
-        async def mock_get(*args, **kwargs):
-            raise httpx.ConnectError("Connection failed")
-
-        monkeypatch.setattr(httpx.AsyncClient, "get", mock_get)
-
+    def test_build_message_format(self):
         trigger = OpenClawTrigger()
-        result = trigger.check_connection("http://invalid.local/health", timeout=1)
-        assert result == False
+        msg = trigger._build_message("BV1xxx", "测试字幕", "123456", "用户")
+        assert "BV1xxx" in msg
+        assert "123456" in msg
+        assert "用户" in msg
+        assert "测试字幕" in msg

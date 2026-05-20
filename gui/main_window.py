@@ -225,21 +225,13 @@ class MainWindow:
         self.interval_entry.pack(side=tk.LEFT)
         self.interval_entry.insert(0, str(config.get("polling_interval", 30)))
 
-        ttk.Label(settings_frame, text="OpenClaw触发方式:").pack(anchor=tk.W, pady=(0, 5))
-        trigger_frame = ttk.Frame(settings_frame)
-        trigger_frame.pack(fill=tk.X, pady=(0, 20))
+        ttk.Label(settings_frame, text="OpenClaw 路径:").pack(anchor=tk.W, pady=(0, 5))
+        openclaw_frame = ttk.Frame(settings_frame)
+        openclaw_frame.pack(fill=tk.X, pady=(0, 20))
 
-        self.trigger_var = tk.StringVar(value=config.get("openclaw_trigger", "command"))
-        ttk.Radiobutton(trigger_frame, text="命令", variable=self.trigger_var, value="command").pack(side=tk.LEFT, padx=5)
-        ttk.Radiobutton(trigger_frame, text="Webhook", variable=self.trigger_var, value="webhook").pack(side=tk.LEFT, padx=5)
-
-        ttk.Label(settings_frame, text="Webhook URL:").pack(anchor=tk.W, pady=(0, 5))
-        webhook_frame = ttk.Frame(settings_frame)
-        webhook_frame.pack(fill=tk.X, pady=(0, 20))
-
-        self.webhook_entry = ttk.Entry(webhook_frame, width=50)
-        self.webhook_entry.pack(side=tk.LEFT, fill=tk.X, expand=True)
-        self.webhook_entry.insert(0, config.get("webhook_url", "http://127.0.0.1:18789/hooks/agent"))
+        self.openclaw_path_entry = ttk.Entry(openclaw_frame, width=50)
+        self.openclaw_path_entry.pack(side=tk.LEFT, fill=tk.X, expand=True)
+        self.openclaw_path_entry.insert(0, config.get("openclaw_path", "openclaw"))
 
         ttk.Label(settings_frame, text="Webhook接收端口:").pack(anchor=tk.W, pady=(0, 5))
         port_frame = ttk.Frame(settings_frame)
@@ -256,8 +248,7 @@ class MainWindow:
 
     def _save_settings(self):
         interval = self.interval_entry.get().strip()
-        trigger = self.trigger_var.get()
-        webhook = self.webhook_entry.get().strip()
+        openclaw_path = self.openclaw_path_entry.get().strip()
         port = self.port_entry.get().strip()
         auto_start = self.auto_start_var.get()
 
@@ -265,8 +256,7 @@ class MainWindow:
             config.set("polling_interval", int(interval))
         except ValueError:
             pass
-        config.set("openclaw_trigger", trigger)
-        config.set("webhook_url", webhook)
+        config.set("openclaw_path", openclaw_path)
         try:
             config.set("webhook_port", int(port))
         except ValueError:

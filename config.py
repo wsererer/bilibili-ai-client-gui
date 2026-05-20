@@ -13,7 +13,7 @@ DEFAULT_CONFIG = {
     "message_mode": "polling",
     "polling_interval": 30,
     "openclaw_trigger": "command",
-    "webhook_url": "http://127.0.0.1:18789/hooks/agent",
+    "openclaw_path": "openclaw",
     "webhook_port": 18792,
     "auto_start": True,
     "window_geometry": None,
@@ -114,12 +114,12 @@ class Config:
         self.save()
 
     @property
-    def webhook_url(self) -> str:
-        return self._config.get("webhook_url", "http://127.0.0.1:18789/hooks/agent")
+    def openclaw_path(self) -> str:
+        return self._config.get("openclaw_path", "openclaw")
 
-    @webhook_url.setter
-    def webhook_url(self, value: str):
-        self._config["webhook_url"] = value
+    @openclaw_path.setter
+    def openclaw_path(self, value: str):
+        self._config["openclaw_path"] = value
         self.save()
 
     @property
