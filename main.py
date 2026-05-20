@@ -64,6 +64,8 @@ async def process_new_message(msg: dict):
         subtitle_text = subtitle_extractor.extract_text(f"https://www.bilibili.com/video/{bv_id}")
 
         if subtitle_text:
+            openclaw_trigger.set_mode(config.get("openclaw_trigger", "command"))
+            openclaw_trigger.set_webhook_url(config.get("webhook_url", "http://127.0.0.1:18789/hooks/agent"))
             success = openclaw_trigger.trigger(
                 bv_id=bv_id,
                 subtitle_text=subtitle_text,

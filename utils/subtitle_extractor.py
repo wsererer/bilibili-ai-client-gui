@@ -177,6 +177,7 @@ def fetch_info(url: str, cookie: Optional[str] = None) -> dict:
         "quiet": True,
         "no_warnings": True,
         "skip_download": True,
+        "socket_timeout": 30,
         "http_headers": {
             "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
             "Referer": "https://www.bilibili.com",
@@ -184,11 +185,24 @@ def fetch_info(url: str, cookie: Optional[str] = None) -> dict:
     }
     if cookie:
         opts["http_headers"]["Cookie"] = cookie
-    with yt_dlp.YoutubeDL(opts) as ydl:
-        info = ydl.extract_info(url, download=False)
-    if not isinstance(info, dict):
-        raise ExtractionError("无法读取视频信息。")
-    return info
+
+    last_error = None
+    for attempt in range(3):
+        try:
+            with yt_dlp.YoutubeDL(opts) as ydl:
+                info = ydl.extract_info(url, download=False)
+            if not isinstance(info, dict):
+                raise ExtractionError("无法读取视频信息。")
+            return info
+        except Exception as e:
+            last_error = e
+            if "timeout" in str(e).lower() or "ssl" in str(e).lower():
+                logger.warning(f"fetch_info attempt {attempt + 1}/3 failed: {e}")
+                import time
+                time.sleep(3)
+                continue
+            raise
+    raise ExtractionError(f"获取视频信息失败（重试3次）: {last_error}")
 
 
 def _fetch_subtitles_from_bilibili_api(
@@ -528,7 +542,7 @@ class SubtitleExtractor:
         self._log(f"读取视频信息: {url}")
         try:
             info = fetch_info(url, cookie=self.cookie)
-        except ExtractionError as e:
+        except Exception as e:
             logger.error(f"获取视频信息失败: {e}")
             return None
 
