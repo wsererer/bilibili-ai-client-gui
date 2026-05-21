@@ -1,6 +1,8 @@
 import httpx
 import asyncio
 import threading
+import re
+import time
 from typing import Optional, Callable
 from utils.logger import logger
 from config import config
@@ -119,7 +121,6 @@ class MessagePoller:
 
                     bv_id = ""
                     if uri and "video" in uri:
-                        import re
                         match = re.search(r'BV[\w]+', uri)
                         if match:
                             bv_id = match.group(0)
@@ -159,55 +160,10 @@ class MessagePoller:
             logger.error(f"Failed to get live DM: {e}")
             return []
 
-    async def poll_loop(self):
-        logger.info("poll_loop started")
-        while self.running:
-            bili_auth = config.get("bili_auth", "")
-            if not bili_auth:
-                logger.warning("未设置 bili_auth，无法获取消息")
-                await asyncio.sleep(5)
-                continue
-
-            logger.info(f"poll_loop iteration, bili_auth present: {bool(bili_auth)}")
-            interval = config.get("polling_interval", 30)
-
-            try:
-                dynamic_msgs = await self.getdynamic(bili_auth)
-                mention_msgs = await self.get_mentions(bili_auth)
-
-                all_messages = dynamic_msgs + mention_msgs
-
-                if all_messages:
-                    self._reset_retry()
-                    for msg in all_messages:
-                        if self.callback:
-                            self.callback(msg)
-                    logger.info(f"获取到 {len(dynamic_msgs)} 条动态, {len(mention_msgs)} 条@消息")
-                else:
-                    self.retry_count += 1
-                    if self.retry_count >= self.max_retries:
-                        delay = self._get_retry_delay()
-                        logger.error(f"连续失败 {self.max_retries} 次，等待 {delay} 秒后重试...")
-                        await asyncio.sleep(delay)
-                        self.retry_count = 0
-                    else:
-                        logger.warning(f"获取失败，第 {self.retry_count} 次重试")
-                        await asyncio.sleep(self._get_retry_delay())
-
-            except asyncio.CancelledError:
-                break
-            except Exception as e:
-                logger.error(f"Polling error: {e}")
-                self.retry_count += 1
-                await asyncio.sleep(self._get_retry_delay())
-
-            await asyncio.sleep(interval)
-
     def start(self):
         if self.running:
             return
         self.running = True
-        import threading
         self.thread = threading.Thread(target=self._run_sync_poll, daemon=True)
         self.thread.start()
         logger.info("消息轮询已启动")
@@ -219,7 +175,6 @@ class MessagePoller:
         logger.info("消息轮询已停止")
 
     def _run_sync_poll(self):
-        import time
         logger.info("sync poll thread started")
         processed_ids = set()
         while self.running:
@@ -237,53 +192,97 @@ class MessagePoller:
                     "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
                     "Referer": "https://www.bilibili.com/"
                 }
-                with httpx.Client(timeout=30.0) as client:
-                    response = client.get(
-                        f"{self.base_url}/x/msgfeed/at",
-                        headers=headers
-                    )
-                    data = response.json()
-
-                if data.get("code") != 0:
-                    logger.warning(f"Get mentions error: {data.get('message')}")
-                    time.sleep(30)
-                    continue
-
-                items = data.get("data", {}).get("items", [])
+                
                 new_messages = []
-                for item in items:
-                    msg_id = str(item.get("id", ""))
-                    if msg_id in processed_ids:
-                        continue
-                    user_info = item.get("user", {})
-                    item_content = item.get("item", {})
-                    sender_uid = str(user_info.get("mid", ""))
-                    sender_name = user_info.get("nickname", "")
-                    content = item_content.get("source_content", "")
-                    uri = item_content.get("uri", "")
-                    bv_id = ""
-                    if uri and "video" in uri:
-                        import re
-                        match = re.search(r'BV[\w]+', uri)
-                        if match:
-                            bv_id = match.group(0)
-                    new_messages.append({
-                        "msg_id": msg_id,
-                        "bv_id": bv_id,
-                        "sender_uid": sender_uid,
-                        "sender_name": sender_name,
-                        "content": content,
-                        "type": "at"
-                    })
+                
+                with httpx.Client(timeout=30.0) as client:
+                    try:
+                        response = client.get(
+                            f"{self.base_url}/x/msgfeed/at",
+                            headers=headers
+                        )
+                        data = response.json()
+
+                        if data.get("code") == 0:
+                            items = data.get("data", {}).get("items", [])
+                            for item in items:
+                                msg_id = str(item.get("id", ""))
+                                if msg_id in processed_ids:
+                                    continue
+                                user_info = item.get("user", {})
+                                item_content = item.get("item", {})
+                                sender_uid = str(user_info.get("mid", ""))
+                                sender_name = user_info.get("nickname", "")
+                                content = item_content.get("source_content", "")
+                                uri = item_content.get("uri", "")
+                                bv_id = ""
+                                if uri and "video" in uri:
+                                    match = re.search(r'BV[\w]+', uri)
+                                    if match:
+                                        bv_id = match.group(0)
+                                new_messages.append({
+                                    "msg_id": msg_id,
+                                    "bv_id": bv_id,
+                                    "sender_uid": sender_uid,
+                                    "sender_name": sender_name,
+                                    "content": content,
+                                    "type": "at"
+                                })
+                        else:
+                            logger.warning(f"Get mentions error: {data.get('message')}")
+                    except Exception as e:
+                        logger.error(f"Failed to get mentions: {e}")
+
+                    try:
+                        response = client.get(
+                            f"{self.base_url}/x/dynamic/app/tabs/v2",
+                            headers=headers
+                        )
+                        data = response.json()
+
+                        if data.get("code") == 0:
+                            tab_id = data.get("data", {}).get("tabs", [{}])[0].get("id")
+                            if tab_id:
+                                dyn_response = client.get(
+                                    f"{self.base_url}/x/dynamic/app/feed/topic",
+                                    params={"tab_id": tab_id, "pagination_str": "{}"},
+                                    headers=headers
+                                )
+                                dyn_data = dyn_response.json()
+
+                                if dyn_data.get("code") == 0:
+                                    items = dyn_data.get("data", {}).get("items", [])
+                                    for item in items:
+                                        msg_id = str(item.get("id_str", ""))
+                                        if msg_id in processed_ids:
+                                            continue
+                                        modules = item.get("modules", {})
+                                        card = item.get("card", {})
+                                        card_type = card.get("type", "")
+                                        if card_type == "DYNAMIC_TYPE_ARCHIVE":
+                                            basic_info = modules.get("module_author", {})
+                                            bv_id = card.get("bvid", "")
+                                            new_messages.append({
+                                                "msg_id": msg_id,
+                                                "bv_id": bv_id,
+                                                "sender_uid": str(basic_info.get("uid", "")),
+                                                "sender_name": basic_info.get("name", ""),
+                                                "content": card.get("title", ""),
+                                                "type": "dynamic"
+                                            })
+                        else:
+                            logger.warning(f"Dynamic API error: {data.get('message')}")
+                    except Exception as e:
+                        logger.error(f"Failed to get dynamic: {e}")
 
                 if new_messages:
-                    logger.info(f"发现 {len(new_messages)} 条新@消息")
+                    logger.info(f"发现 {len(new_messages)} 条新消息")
                     for msg in new_messages:
                         processed_ids.add(msg["msg_id"])
                         if self.callback:
                             self.callback(msg)
                 else:
-                    logger.debug("无新@消息")
+                    logger.debug("无新消息")
 
             except Exception as e:
                 logger.error(f"Sync poll error: {e}")
