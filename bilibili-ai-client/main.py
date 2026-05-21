@@ -31,20 +31,16 @@ def on_openclaw_complete(bv_id: str, success: bool, summary_text: str, error_msg
     if success and summary_text:
         logger.info(f"OpenClaw 处理完成: {bv_id}, 摘要长度: {len(summary_text)}")
 
-        pending_messages = database.get_pending_messages()
+        all_messages = database.get_messages(100)
         sender_uid = ""
         sender_name = ""
-        for msg in pending_messages:
+        subtitle_text = ""
+        for msg in all_messages:
             if msg.get("bv_id") == bv_id:
                 sender_uid = msg.get("sender_uid", "")
                 sender_name = msg.get("sender_name", "")
+                subtitle_text = msg.get("content", "")
                 break
-
-        subtitle_text = ""
-        try:
-            subtitle_text = subtitle_extractor.extract_text(f"https://www.bilibili.com/video/{bv_id}")
-        except Exception:
-            pass
 
         database.add_summary(
             bv_id=bv_id,
@@ -54,8 +50,7 @@ def on_openclaw_complete(bv_id: str, success: bool, summary_text: str, error_msg
             summary_text=summary_text
         )
 
-        triggered_messages = database.get_messages(100)
-        for msg in triggered_messages:
+        for msg in all_messages:
             if msg.get("bv_id") == bv_id and msg.get("status") == "triggered":
                 database.update_message_status(msg["id"], "processed")
                 break
@@ -64,8 +59,8 @@ def on_openclaw_complete(bv_id: str, success: bool, summary_text: str, error_msg
     else:
         logger.error(f"OpenClaw 处理失败: {bv_id}, 错误: {error_msg}")
 
-        triggered_messages = database.get_messages(100)
-        for msg in triggered_messages:
+        all_messages = database.get_messages(100)
+        for msg in all_messages:
             if msg.get("bv_id") == bv_id and msg.get("status") == "triggered":
                 database.update_message_status(msg["id"], "openclaw_failed")
                 break

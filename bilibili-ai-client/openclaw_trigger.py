@@ -2,7 +2,7 @@ import subprocess
 import threading
 import re
 from pathlib import Path
-from typing import Optional, Callable, Dict, Any
+from typing import Optional, Callable, Dict
 from utils.logger import logger
 
 
@@ -11,6 +11,7 @@ class OpenClawTrigger:
         self.openclaw_path = "openclaw"
         self._callback: Optional[Callable] = None
         self._running_tasks: Dict[str, subprocess.Popen] = {}
+        self._lock = threading.Lock()
 
     def set_openclaw_path(self, path: str):
         self.openclaw_path = path
@@ -87,8 +88,9 @@ BV号: {bv_id}
         try:
             stdout, stderr = process.communicate(timeout=300)
 
-            if bv_id in self._running_tasks:
-                del self._running_tasks[bv_id]
+            with self._lock:
+                if bv_id in self._running_tasks:
+                    del self._running_tasks[bv_id]
 
             if process.returncode == 0:
                 logger.info(f"OpenClaw completed successfully for {bv_id}")
@@ -111,13 +113,15 @@ BV号: {bv_id}
         except subprocess.TimeoutExpired:
             logger.error(f"OpenClaw timeout for {bv_id}")
             process.kill()
-            if bv_id in self._running_tasks:
-                del self._running_tasks[bv_id]
+            with self._lock:
+                if bv_id in self._running_tasks:
+                    del self._running_tasks[bv_id]
             self._notify_callback(bv_id, False, None, "处理超时")
         except Exception as e:
             logger.error(f"OpenClaw monitor error for {bv_id}: {e}")
-            if bv_id in self._running_tasks:
-                del self._running_tasks[bv_id]
+            with self._lock:
+                if bv_id in self._running_tasks:
+                    del self._running_tasks[bv_id]
             self._notify_callback(bv_id, False, None, str(e))
 
     def _extract_summary_from_output(self, output: str) -> Optional[str]:
@@ -165,15 +169,17 @@ BV号: {bv_id}
 
     def cancel_task(self, bv_id: str):
         """取消正在运行的任务"""
-        if bv_id in self._running_tasks:
-            process = self._running_tasks[bv_id]
-            process.kill()
-            del self._running_tasks[bv_id]
-            logger.info(f"Cancelled OpenClaw task for {bv_id}")
+        with self._lock:
+            if bv_id in self._running_tasks:
+                process = self._running_tasks[bv_id]
+                process.kill()
+                del self._running_tasks[bv_id]
+                logger.info(f"Cancelled OpenClaw task for {bv_id}")
 
     def get_running_tasks(self) -> list:
         """获取正在运行的任务列表"""
-        return list(self._running_tasks.keys())
+        with self._lock:
+            return list(self._running_tasks.keys())
 
 
 openclaw_trigger = OpenClawTrigger()
