@@ -65,7 +65,7 @@ def on_openclaw_complete(bv_id: str, success: bool, summary_text: str, error_msg
             break
 
 
-async def process_new_message(msg: dict):
+def process_new_message(msg: dict):
     logger.info(f"process_new_message called with: {msg}")
     bv_id = msg.get("bv_id", "")
     sender_uid = msg.get("sender_uid", "")
@@ -127,7 +127,7 @@ async def process_new_message(msg: dict):
             logger.warning(f"无法获取字幕: {bv_id}")
 
 
-async def reprocess_blocked_messages(uid=None):
+def reprocess_blocked_messages(uid=None):
     blocked = database.get_not_whitelisted_messages()
     if not blocked:
         return
@@ -140,7 +140,7 @@ async def reprocess_blocked_messages(uid=None):
         if database.is_whitelist(sender_uid):
             database.update_message_status(msg_id, "pending")
             logger.info(f"消息 {msg_id} 用户 {sender_uid} 已加入白名单，重新处理")
-            await process_new_message({
+            process_new_message({
                 "msg_id": msg_id,
                 "bv_id": msg.get("bv_id", ""),
                 "sender_uid": sender_uid,
@@ -152,9 +152,6 @@ async def reprocess_blocked_messages(uid=None):
 async def run_gui_with_services():
     from gui.main_window import MainWindow
 
-    async_loop = asyncio.get_running_loop()
-    logger.info(f"Got event loop: {async_loop}")
-
     if config.get("auto_start", True):
         logger.info(f"auto_start is True, config.bili_auth: {config.get('bili_auth', '')[:30] if config.get('bili_auth') else 'EMPTY'}...")
         def wrapped_callback(msg):
@@ -162,8 +159,7 @@ async def run_gui_with_services():
             max_retries = 3
             for attempt in range(max_retries):
                 try:
-                    future = asyncio.run_coroutine_threadsafe(process_new_message(msg), async_loop)
-                    future.result(timeout=300)
+                    process_new_message(msg)
                     return
                 except Exception as e:
                     logger.error(f"Error processing message (attempt {attempt + 1}/{max_retries}): {e}")
@@ -201,7 +197,7 @@ def main():
         if args.mode == "mcp":
             asyncio.run(mcp_main())
         elif args.mode == "webhook":
-            webhook_receiver.set_callback(lambda msg: asyncio.create_task(process_new_message(msg)))
+            webhook_receiver.set_callback(lambda msg: process_new_message(msg))
             asyncio.run(webhook_receiver.start(port=port))
         elif args.mode == "gui" or args.mode == "all":
             asyncio.run(run_gui_with_services())
