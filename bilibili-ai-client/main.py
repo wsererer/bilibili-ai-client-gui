@@ -31,16 +31,15 @@ def on_openclaw_complete(bv_id: str, success: bool, summary_text: str, error_msg
     if success and summary_text:
         logger.info(f"OpenClaw 处理完成: {bv_id}, 摘要长度: {len(summary_text)}")
 
-        all_messages = database.get_messages(100)
+        messages = database.get_messages_by_bv_id(bv_id)
         sender_uid = ""
         sender_name = ""
         subtitle_text = ""
-        for msg in all_messages:
-            if msg.get("bv_id") == bv_id:
-                sender_uid = msg.get("sender_uid", "")
-                sender_name = msg.get("sender_name", "")
-                subtitle_text = msg.get("content", "")
-                break
+        for msg in messages:
+            sender_uid = msg.get("sender_uid", "")
+            sender_name = msg.get("sender_name", "")
+            subtitle_text = msg.get("content", "")
+            break
 
         database.add_summary(
             bv_id=bv_id,
@@ -50,20 +49,19 @@ def on_openclaw_complete(bv_id: str, success: bool, summary_text: str, error_msg
             summary_text=summary_text
         )
 
-        for msg in all_messages:
-            if msg.get("bv_id") == bv_id and msg.get("status") == "triggered":
-                database.update_message_status(msg["id"], "processed")
-                break
+        triggered_messages = database.get_messages_by_bv_id(bv_id, "triggered")
+        for msg in triggered_messages:
+            database.update_message_status(msg["id"], "processed")
+            break
 
         logger.info(f"摘要已保存到数据库: {bv_id}")
     else:
         logger.error(f"OpenClaw 处理失败: {bv_id}, 错误: {error_msg}")
 
-        all_messages = database.get_messages(100)
-        for msg in all_messages:
-            if msg.get("bv_id") == bv_id and msg.get("status") == "triggered":
-                database.update_message_status(msg["id"], "openclaw_failed")
-                break
+        triggered_messages = database.get_messages_by_bv_id(bv_id, "triggered")
+        for msg in triggered_messages:
+            database.update_message_status(msg["id"], "openclaw_failed")
+            break
 
 
 async def process_new_message(msg: dict):
@@ -160,12 +158,9 @@ async def run_gui_with_services():
         logger.info(f"auto_start is True, config.bili_auth: {config.get('bili_auth', '')[:30] if config.get('bili_auth') else 'EMPTY'}...")
         def wrapped_callback(msg):
             logger.info(f"Callback triggered for msg: {msg.get('msg_id')}")
-            # Process message synchronously since we're calling from a non-async thread
             try:
-                loop = asyncio.new_event_loop()
-                asyncio.set_event_loop(loop)
-                loop.run_until_complete(process_new_message(msg))
-                loop.close()
+                future = asyncio.run_coroutine_threadsafe(process_new_message(msg), async_loop)
+                future.result(timeout=300)
             except Exception as e:
                 logger.error(f"Error processing message: {e}")
         message_poller.set_callback(wrapped_callback)

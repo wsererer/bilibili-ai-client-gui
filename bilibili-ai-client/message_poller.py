@@ -237,12 +237,12 @@ class MessagePoller:
                     "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
                     "Referer": "https://www.bilibili.com/"
                 }
-                response = requests.get(
-                    f"{self.base_url}/x/msgfeed/at",
-                    headers=headers,
-                    timeout=30
-                )
-                data = response.json()
+                with httpx.Client(timeout=30.0) as client:
+                    response = client.get(
+                        f"{self.base_url}/x/msgfeed/at",
+                        headers=headers
+                    )
+                    data = response.json()
 
                 if data.get("code") != 0:
                     logger.warning(f"Get mentions error: {data.get('message')}")

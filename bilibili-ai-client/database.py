@@ -164,6 +164,20 @@ class Database:
             return [dict(row) for row in cursor.fetchall()]
 
     @staticmethod
+    def get_messages_by_bv_id(bv_id: str, status: str = None) -> List[Dict[str, Any]]:
+        with get_db() as conn:
+            cursor = conn.cursor()
+            if status:
+                cursor.execute("""
+                    SELECT * FROM messages WHERE bv_id = ? AND status = ? ORDER BY received_at DESC
+                """, (bv_id, status))
+            else:
+                cursor.execute("""
+                    SELECT * FROM messages WHERE bv_id = ? ORDER BY received_at DESC
+                """, (bv_id,))
+            return [dict(row) for row in cursor.fetchall()]
+
+    @staticmethod
     def add_summary(bv_id: str, sender_uid: str, sender_name: str, subtitle_text: str, summary_text: str) -> int:
         with get_db() as conn:
             cursor = conn.cursor()

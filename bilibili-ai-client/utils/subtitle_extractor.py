@@ -329,7 +329,8 @@ def _fetch_subtitles_from_bilibili_api(
             return None
 
     if cookie and len(cookie) > 50:
-        output_dir = Path("data/subtitles")
+        from utils.app_data import APP_DATA_DIR
+        output_dir = APP_DATA_DIR / "subtitles"
         output_dir.mkdir(parents=True, exist_ok=True)
         safe_title = sanitize_filename(bv_id)
         out_path = output_dir / f"{safe_title}.{lan}.json"
