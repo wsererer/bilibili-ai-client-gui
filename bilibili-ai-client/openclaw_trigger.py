@@ -1,5 +1,6 @@
 import subprocess
 import json
+import uuid
 from pathlib import Path
 from typing import Optional, Callable
 from utils.logger import logger
@@ -41,7 +42,7 @@ BV号: {bv_id}
 
     def _trigger_sync(self, bv_id: str, message: str) -> bool:
         try:
-            session_id = f"bilibili_{bv_id.replace('-', '_')}"
+            session_id = f"bilibili_{uuid.uuid4().hex}"
             cmd = [
                 self.openclaw_path, "agent",
                 "--message", message,
