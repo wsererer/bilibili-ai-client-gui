@@ -282,14 +282,7 @@ class MainWindow:
             self.uid_entry.delete(0, tk.END)
             self.username_entry.delete(0, tk.END)
             self._set_status(f"已添加白名单: {uid}")
-            try:
-                import main
-                loop = asyncio.new_event_loop()
-                asyncio.set_event_loop(loop)
-                loop.run_until_complete(main.reprocess_blocked_messages())
-                loop.close()
-            except Exception as e:
-                logger.error(f"重新处理消息失败: {e}")
+            threading.Thread(target=self._reprocess_blocked, daemon=True).start()
         else:
             messagebox.showerror("错误", "添加失败")
 
@@ -306,6 +299,20 @@ class MainWindow:
             self._set_status(f"已删除白名单: {uid}")
         else:
             messagebox.showerror("错误", "删除失败")
+
+    def _reprocess_blocked(self):
+        try:
+            import main
+            blocked = database.get_not_whitelisted_messages()
+            if blocked:
+                logger.info(f"重新处理 {len(blocked)} 条被拦截的消息")
+                loop = asyncio.new_event_loop()
+                asyncio.set_event_loop(loop)
+                loop.run_until_complete(main.reprocess_blocked_messages())
+                loop.close()
+                self._refresh_messages()
+        except Exception as e:
+            logger.error(f"重新处理消息失败: {e}")
 
     def _process_message(self):
         selection = self.message_list.curselection()
