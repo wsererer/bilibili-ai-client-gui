@@ -127,8 +127,9 @@ async def call_tool(name: str, arguments: Any) -> List[TextContent]:
             bv_id = arguments.get("bv_id")
             if not bv_id:
                 return [TextContent(type="text", text=json.dumps({"error": "bv_id is required"}))]
-            result = await subtitle_extractor.get_subtitle(bv_id)
-            return [TextContent(type="text", text=json.dumps(result, ensure_ascii=False))]
+            url = f"https://www.bilibili.com/video/{bv_id}"
+            text = subtitle_extractor.extract_text(url)
+            return [TextContent(type="text", text=json.dumps({"bv_id": bv_id, "subtitle": text}, ensure_ascii=False))]
 
         elif name == "ack_message":
             msg_id = arguments.get("msg_id")

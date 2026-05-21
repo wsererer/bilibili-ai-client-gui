@@ -53,7 +53,12 @@ async def process_new_message(msg: dict):
         content=msg.get("content", "")
     )
 
-    if sender_uid and not is_whitelisted:
+    if not sender_uid:
+        database.update_message_status(msg_id, "no_sender_uid")
+        logger.info(f"消息 {msg_id} 无发送者UID，已记录")
+        return
+
+    if not is_whitelisted:
         database.update_message_status(msg_id, "not_whitelisted")
         logger.info(f"用户 {sender_uid} 不在白名单，已记录")
         return
@@ -82,7 +87,7 @@ async def process_new_message(msg: dict):
             logger.warning(f"无法获取字幕: {bv_id}")
 
 
-async def reprocess_blocked_messages():
+async def reprocess_blocked_messages(uid=None):
     blocked = database.get_not_whitelisted_messages()
     if not blocked:
         return
@@ -90,6 +95,8 @@ async def reprocess_blocked_messages():
     for msg in blocked:
         msg_id = msg.get("id", "")
         sender_uid = msg.get("sender_uid", "")
+        if uid and sender_uid != uid:
+            continue
         if database.is_whitelist(sender_uid):
             database.update_message_status(msg_id, "pending")
             logger.info(f"消息 {msg_id} 用户 {sender_uid} 已加入白名单，重新处理")
@@ -132,6 +139,11 @@ async def run_gui_with_services():
     app = MainWindow()
     app.run()
 
+    mcp_task.cancel()
+    try:
+        await mcp_task
+    except asyncio.CancelledError:
+        pass
     message_poller.stop()
 
 

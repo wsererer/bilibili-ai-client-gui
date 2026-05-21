@@ -124,7 +124,7 @@ class Database:
             with get_db() as conn:
                 cursor = conn.cursor()
                 cursor.execute("""
-                    INSERT OR REPLACE INTO messages (id, sender_uid, sender_name, bv_id, content, status)
+                    INSERT OR IGNORE INTO messages (id, sender_uid, sender_name, bv_id, content, status)
                     VALUES (?, ?, ?, ?, ?, 'pending')
                 """, (msg_id, sender_uid, sender_name, bv_id, content))
             return True

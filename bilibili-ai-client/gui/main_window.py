@@ -4,7 +4,6 @@ import threading
 import webbrowser
 import time
 from pathlib import Path
-import requests
 
 from config import config
 from database import database

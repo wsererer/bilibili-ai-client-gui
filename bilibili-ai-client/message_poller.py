@@ -1,6 +1,5 @@
 import httpx
 import asyncio
-import requests
 import threading
 from typing import Optional, Callable
 from utils.logger import logger
