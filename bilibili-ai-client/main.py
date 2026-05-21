@@ -53,7 +53,6 @@ def on_openclaw_complete(bv_id: str, success: bool, summary_text: str, error_msg
         triggered_messages = database.get_messages_by_bv_id(bv_id, "triggered")
         for msg in triggered_messages:
             database.update_message_status(msg["id"], "processed")
-            break
 
         logger.info(f"摘要已保存到数据库: {bv_id}")
     else:
@@ -62,7 +61,6 @@ def on_openclaw_complete(bv_id: str, success: bool, summary_text: str, error_msg
         triggered_messages = database.get_messages_by_bv_id(bv_id, "triggered")
         for msg in triggered_messages:
             database.update_message_status(msg["id"], "openclaw_failed")
-            break
 
 
 def process_new_message(msg: dict):
