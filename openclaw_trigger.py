@@ -10,7 +10,7 @@ class OpenClawTrigger:
 
     def trigger(self, bv_id: str, subtitle_text: str, sender_uid: str, sender_name: str = "") -> bool:
         message = self._build_message(bv_id, subtitle_text, sender_uid, sender_name)
-        return self._trigger_command(message)
+        return self._trigger_command(bv_id, message)
 
     def _build_message(self, bv_id: str, subtitle_text: str, sender_uid: str, sender_name: str) -> str:
         sender_info = f"发送者UID: {sender_uid}"
@@ -30,22 +30,32 @@ BV号: {bv_id}
 格式: {{日期}}/{{BV号}}.md
 """
 
-    def _trigger_command(self, message: str) -> bool:
+    def _trigger_command(self, bv_id: str, message: str) -> bool:
         try:
-            logger.info(f"Triggering OpenClaw via command: {self.openclaw_path}")
-            cmd = [self.openclaw_path, "agent", "--message", message]
+            session_id = f"bilibili-{bv_id}"
+            cmd = [
+                self.openclaw_path, "agent",
+                "--message", message,
+                "--session-id", session_id
+            ]
+            logger.info(f"Triggering OpenClaw: {self.openclaw_path} agent --session-id {session_id}")
+
             result = subprocess.run(
                 cmd,
                 capture_output=True,
                 text=True,
-                timeout=120
+                timeout=120,
+                encoding='utf-8',
+                errors='replace'
             )
 
             if result.returncode == 0:
                 logger.info("OpenClaw command trigger successful")
+                if result.stdout:
+                    logger.info(f"OpenClaw output: {result.stdout[:500]}")
                 return True
             else:
-                logger.error(f"OpenClaw command failed: {result.stderr}")
+                logger.error(f"OpenClaw command failed (rc={result.returncode}): {result.stderr}")
                 return False
 
         except FileNotFoundError:

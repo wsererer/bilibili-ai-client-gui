@@ -11,7 +11,7 @@ class TestOpenClawCommand:
     def test_command_trigger_builds_correct_command(self, monkeypatch):
         triggered = []
 
-        def mock_run(cmd, capture_output=True, text=True, timeout=120):
+        def mock_run(cmd, capture_output=True, text=True, timeout=120, encoding='utf-8', errors='replace'):
             triggered.append(cmd)
             class Result:
                 returncode = 0
@@ -33,7 +33,9 @@ class TestOpenClawCommand:
         assert len(triggered) == 1
         cmd = triggered[0]
         assert "openclaw" in cmd[0].lower()
-        assert "BV1xxx" in str(cmd)
+        assert "--session-id" in cmd
+        assert "bilibili-BV1xxx" in cmd
+        assert "--message" in cmd
 
     def test_command_trigger_failure(self, monkeypatch):
         def mock_run(*args, **kwargs):
@@ -58,7 +60,7 @@ class TestOpenClawCommand:
     def test_custom_openclaw_path(self, monkeypatch):
         triggered = []
 
-        def mock_run(cmd, capture_output=True, text=True, timeout=120):
+        def mock_run(cmd, capture_output=True, text=True, timeout=120, encoding='utf-8', errors='replace'):
             triggered.append(cmd)
             class Result:
                 returncode = 0
@@ -79,6 +81,26 @@ class TestOpenClawCommand:
 
         assert result == True
         assert triggered[0][0] == "/custom/path/openclaw"
+
+    def test_session_id_format(self, monkeypatch):
+        triggered = []
+
+        def mock_run(cmd, capture_output=True, text=True, timeout=120, encoding='utf-8', errors='replace'):
+            triggered.append(cmd)
+            class Result:
+                returncode = 0
+                stdout = ""
+                stderr = ""
+            return Result()
+
+        monkeypatch.setattr("subprocess.run", mock_run)
+
+        trigger = OpenClawTrigger()
+        trigger.trigger("BV1Y5BxBpEpg", "字幕", "123", "用户")
+
+        cmd = triggered[0]
+        session_idx = cmd.index("--session-id")
+        assert cmd[session_idx + 1] == "bilibili-BV1Y5BxBpEpg"
 
     def test_build_message_format(self):
         trigger = OpenClawTrigger()
