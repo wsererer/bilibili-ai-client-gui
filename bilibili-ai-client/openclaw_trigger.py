@@ -1,6 +1,7 @@
 import subprocess
 import threading
 import re
+import json
 from pathlib import Path
 from typing import Optional, Callable, Dict
 from utils.logger import logger
@@ -49,7 +50,7 @@ BV号: {bv_id}
                 self.openclaw_path, "agent",
                 "--message", message,
                 "--session-id", session_id,
-                "--local"
+                "--json"
             ]
             logger.info(f"Triggering OpenClaw async: {self.openclaw_path} agent --session-id {session_id}")
 
@@ -86,7 +87,7 @@ BV号: {bv_id}
     def _monitor_process(self, bv_id: str, process: subprocess.Popen, sender_uid: str, sender_name: str):
         """监控 OpenClaw 进程，处理完成后回调"""
         try:
-            stdout, stderr = process.communicate(timeout=300)
+            stdout, stderr = process.communicate(timeout=600)
 
             with self._lock:
                 if bv_id in self._running_tasks:
@@ -125,10 +126,21 @@ BV号: {bv_id}
             self._notify_callback(bv_id, False, None, str(e))
 
     def _extract_summary_from_output(self, output: str) -> Optional[str]:
-        """从 OpenClaw 输出中提取摘要内容"""
+        """从 OpenClaw 输出中提取摘要内容（支持 JSON 和纯文本）"""
         if not output:
             return None
 
+        # 尝试 JSON 解析
+        try:
+            data = json.loads(output)
+            if isinstance(data, dict):
+                for key in ("summary", "content", "text", "message", "result"):
+                    if data.get(key):
+                        return str(data[key]).strip()
+        except (json.JSONDecodeError, TypeError):
+            pass
+
+        # fallback: 正则匹配纯文本格式
         patterns = [
             r'摘要[：:]\s*\n(.*?)(?=\n={10}|\Z)',
             r'Summary[：:]\s*\n(.*?)(?=\n={10}|\Z)',
