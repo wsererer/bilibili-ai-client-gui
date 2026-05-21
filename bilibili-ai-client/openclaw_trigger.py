@@ -104,10 +104,15 @@ BV号: {bv_id}
             if isinstance(data, dict):
                 # OpenClaw --json 输出格式: {"payloads": [{"text": "...", "mediaUrl": null}], "meta": {...}}
                 payloads = data.get("payloads", [])
-                if isinstance(payloads, list) and len(payloads) > 0:
-                    text = payloads[0].get("text")
+                if isinstance(payloads, list) and payloads:
+                    text = payloads[0].get("text") or payloads[0].get("content")
                     if text:
-                        return str(text).strip()
+                        return text.strip()
+                # 再尝试顶层 key（兼容其他输出格式）
+                for key in ("summary", "content", "text", "message", "result"):
+                    val = data.get(key)
+                    if val:
+                        return str(val).strip()
         except (json.JSONDecodeError, TypeError):
             pass
 
