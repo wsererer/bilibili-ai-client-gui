@@ -42,7 +42,7 @@ BV号: {bv_id}
 
     def _trigger_sync(self, bv_id: str, message: str) -> bool:
         try:
-            session_id = f"bilibili_{uuid.uuid4().hex}"
+            session_id = uuid.uuid4().hex
             cmd = [
                 self.openclaw_path, "agent",
                 "--message", message,
