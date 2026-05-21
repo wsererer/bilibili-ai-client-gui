@@ -70,6 +70,11 @@ def init_database():
             )
         """)
 
+        cursor.execute("CREATE INDEX IF NOT EXISTS idx_messages_bv_id ON messages(bv_id)")
+        cursor.execute("CREATE INDEX IF NOT EXISTS idx_messages_status ON messages(status)")
+        cursor.execute("CREATE INDEX IF NOT EXISTS idx_messages_sender_uid ON messages(sender_uid)")
+        cursor.execute("CREATE INDEX IF NOT EXISTS idx_summaries_bv_id ON summaries(bv_id)")
+
 
 class Database:
     @staticmethod
