@@ -1,6 +1,7 @@
 import sys
 import asyncio
 import argparse
+import time
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent))
@@ -158,11 +159,17 @@ async def run_gui_with_services():
         logger.info(f"auto_start is True, config.bili_auth: {config.get('bili_auth', '')[:30] if config.get('bili_auth') else 'EMPTY'}...")
         def wrapped_callback(msg):
             logger.info(f"Callback triggered for msg: {msg.get('msg_id')}")
-            try:
-                future = asyncio.run_coroutine_threadsafe(process_new_message(msg), async_loop)
-                future.result(timeout=300)
-            except Exception as e:
-                logger.error(f"Error processing message: {e}")
+            max_retries = 3
+            for attempt in range(max_retries):
+                try:
+                    future = asyncio.run_coroutine_threadsafe(process_new_message(msg), async_loop)
+                    future.result(timeout=300)
+                    return
+                except Exception as e:
+                    logger.error(f"Error processing message (attempt {attempt + 1}/{max_retries}): {e}")
+                    if attempt < max_retries - 1:
+                        time.sleep(5)
+            logger.error(f"Failed to process message after {max_retries} attempts: {msg.get('msg_id')}")
         message_poller.set_callback(wrapped_callback)
         logger.info("Starting message_poller...")
         message_poller.start()

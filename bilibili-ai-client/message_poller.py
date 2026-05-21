@@ -45,6 +45,7 @@ class MessagePoller:
     def _run_sync_poll(self):
         logger.info("sync poll thread started")
         processed_ids = set()
+        max_processed_ids = 10000
         while self.running:
             bili_auth = config.get("bili_auth", "")
             if not bili_auth or "SESSDATA" not in bili_auth:
@@ -149,6 +150,10 @@ class MessagePoller:
                         processed_ids.add(msg["msg_id"])
                         if self.callback:
                             self.callback(msg)
+                    
+                    if len(processed_ids) > max_processed_ids:
+                        processed_ids = set(list(processed_ids)[-max_processed_ids // 2:])
+                        logger.debug(f"清理 processed_ids，保留 {len(processed_ids)} 条")
                 else:
                     logger.debug("无新消息")
 
