@@ -3,7 +3,8 @@
 ## Table of Contents
 - [Bilibili APIs](#bilibili-apis)
 - [MCP Server Tools](#mcp-server-tools)
-- [Webhook Endpoints](#webhook-endpoints)
+- [Webhook Receiver](#webhook-receiver)
+- [OpenClaw Integration](#openclaw-integration)
 - [Internal APIs](#internal-apis)
 
 ---
@@ -54,7 +55,7 @@ Response:
         {
           "subtitle_url": "//xxxxx",
           "lan": "zh",
-          "type": 0  // 0=user subtitle, 1=AI subtitle
+          "type": 0
         }
       ]
     }
@@ -62,19 +63,7 @@ Response:
 }
 ```
 
-### Dynamic Feed
-
-**Get Dynamic Tabs**
-```
-GET https://api.bilibili.com/x/dynamic/app/tabs/v2
-```
-
-**Get Dynamic Feed**
-```
-GET https://api.bilibili.com/x/dynamic/app/feed/topic
-Parameters:
-  - topic: string (e.g., DYNAMIC_TOPIC_ALL)
-```
+Subtitle type: 0 = user subtitle, 1 = AI subtitle
 
 ### Messages
 
@@ -106,22 +95,6 @@ Get pending messages for processing.
 }
 ```
 
-Response:
-```json
-{
-  "messages": [
-    {
-      "msg_id": "xxx",
-      "bv_id": "BV1xx411c7mD",
-      "sender_uid": "123456",
-      "sender_name": "username",
-      "content": "message content",
-      "status": "pending"
-    }
-  ]
-}
-```
-
 #### get_subtitle
 Get subtitle for a specific BV video.
 
@@ -131,16 +104,6 @@ Get subtitle for a specific BV video.
   "arguments": {
     "bv_id": "BV1xx411c7mD"
   }
-}
-```
-
-Response:
-```json
-{
-  "title": "Video Title",
-  "video_id": "BV1xx411c7mD",
-  "source": "subtitle|whisper",
-  "transcript_text": "Transcript content..."
 }
 ```
 
@@ -166,23 +129,6 @@ Get video summary history.
   "arguments": {
     "limit": 50
   }
-}
-```
-
-Response:
-```json
-{
-  "summaries": [
-    {
-      "id": 1,
-      "bv_id": "BV1xx411c7mD",
-      "sender_uid": "123456",
-      "sender_name": "username",
-      "subtitle_text": "original subtitle",
-      "summary_text": "summary by AI",
-      "created_at": "2024-01-01 12:00:00"
-    }
-  ]
 }
 ```
 
@@ -212,19 +158,11 @@ Get processing statistics.
 }
 ```
 
-Response:
-```json
-{
-  "today": 10,
-  "total": 100
-}
-```
-
 ---
 
-## Webhook Endpoints
+## Webhook Receiver
 
-Start webhook server with:
+The webhook receiver allows external services to push messages to the app. Run with:
 ```bash
 python main.py --mode webhook
 ```
@@ -263,29 +201,54 @@ Response:
 
 ---
 
+## OpenClaw Integration
+
+OpenClaw is triggered via CLI command:
+
+```bash
+openclaw agent --message "处理视频任务..."
+```
+
+### Configuration
+
+| Config Key | Description | Default |
+|-----------|-------------|---------|
+| `openclaw_path` | Path to openclaw executable | `openclaw` |
+
+### Message Format
+
+```
+处理视频任务
+==========
+BV号: BV1xx411c7mD
+发送者UID: 123456 (username)
+
+字幕内容:
+{subtitle text}
+==========
+
+请生成视频摘要并保存到 ~/.openclaw/workspace/bilibili-summaries/ 目录。
+格式: {日期}/{BV号}.md
+```
+
+---
+
 ## Internal APIs
 
 ### Subtitle Extraction Priority Chain
 
 ```
-1. B站 API (user subtitles, type=0)
-   └─> Retry up to 5 times if only AI subtitles returned
-
-2. B站 API (AI subtitles, type=1)
-   └─> Fallback if no user subtitles
-
-3. yt-dlp download
-   └─> Download subtitles via yt-dlp
-
-4. Whisper transcription
-   └─> Download audio and transcribe with faster-whisper
+1. B站 API (/x/web-interface/view) — 获取视频标题和信息
+2. B站 API (/x/player/v2) — 获取字幕 (user > AI)
+3. yt-dlp download — 下载字幕
+4. Whisper transcription — 音频转写
 ```
 
 ### Configuration
 
 - `data/login_cookie.txt` - Primary cookie source
-- `data/config.json` - Alternative cookie via `bili_auth` key
-- Cookie must be >50 chars for API authentication
+- `data/config.json` - App config (auto-loaded from login_cookie.txt on startup)
+- Cookie must be >50 chars and contain SESSDATA
 
 ### Database Schema
 
@@ -320,14 +283,4 @@ CREATE TABLE summaries (
 );
 ```
 
-### OpenClaw Integration
-
-**Webhook Mode:**
-```
-POST http://127.0.0.1:18789/hooks/agent
-```
-
-**Command Mode:**
-```
-openclaw agent --message "message content"
-```
+Message statuses: `pending`, `not_whitelisted`, `triggered`, `trigger_failed`, `no_subtitle`

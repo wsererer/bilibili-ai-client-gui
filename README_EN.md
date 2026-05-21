@@ -7,22 +7,25 @@ Bilibili AI Client - Automatically extract subtitles and AI-reply to Bilibili dy
 ## Features
 
 - 🤖 **AI Auto-Reply**: Automatically reply to Bilibili dynamics and comments
-- 📝 **Smart Subtitle Extraction**: Multi-priority chain: B站 subtitles > AI subtitles > yt-dlp > Whisper
-- 💬 **MCP Protocol Support**: Communicate with AI Agent via Model Context Protocol
+- 📝 **Smart Subtitle Extraction**: B站 API > yt-dlp > Whisper multi-priority chain
+- 🔐 **QR Code Login**: Cookie authentication with auto-persistence
+- 📋 **Whitelist Management**: Only process comments from whitelisted users, auto-reprocess blocked messages when whitelist is updated
 - 🖥️ **Graphical Interface**: Modern PyQt6 GUI
-- 🔐 **Secure Login**: QR code login with Cookie authentication
+- 💬 **MCP Protocol**: Communicate with AI Agent via Model Context Protocol
+- 🔗 **OpenClaw Integration**: Trigger OpenClaw via CLI command to process videos
 
 ## Requirements
 
 - Python 3.10+
 - Windows/Linux/macOS
+- [OpenClaw](https://openclaw.ai) (optional, for AI video processing)
 
 ## Installation
 
 ### 1. Clone the repository
 
 ```bash
-git clone https://github.com/your-repo/bilibili-ai-client-gui.git
+git clone https://github.com/wsererer/bilibili-ai-client-gui.git
 cd bilibili-ai-client-gui
 ```
 
@@ -42,7 +45,7 @@ source venv/bin/activate
 pip install -r requirements.txt
 ```
 
-### 4. Download Whisper model
+### 4. Download Whisper model (optional)
 
 ```bash
 python download_model.py
@@ -71,12 +74,35 @@ python main.py --mode gui
 # MCP mode (for AI Agent)
 python main.py --mode mcp
 
-# Webhook mode
+# Webhook receiver mode (receive external messages)
 python main.py --mode webhook
 
 # All modes
 python main.py --mode all
 ```
+
+## OpenClaw Integration
+
+The software calls OpenClaw via CLI command to process videos:
+
+```bash
+openclaw agent --message "Process video task..."
+```
+
+### Configure OpenClaw Path
+
+You can customize the OpenClaw executable path in GUI settings (default: `openclaw`).
+
+If `openclaw` is not in your system PATH, specify the full path:
+```
+C:\Users\YourName\AppData\Roaming\npm\openclaw.cmd
+```
+
+## Whitelist Mechanism
+
+- Only comments from whitelisted users are processed
+- Comments from non-whitelisted users are recorded with `not_whitelisted` status
+- When a new user is added to the whitelist, their previously blocked comments are automatically reprocessed
 
 ## Project Structure
 
@@ -87,16 +113,16 @@ bilibili-ai-client-gui/
 ├── database.py          # Database module
 ├── bilibili_login.py    # QR code login
 ├── message_poller.py    # Message polling
-├── webhook_server.py   # Webhook server
-├── mcp_server.py       # MCP protocol server
-├── openclaw_trigger.py # OpenClaw trigger
-├── gui/                # GUI module
-├── utils/              # Utilities
+├── webhook_server.py    # Webhook receiver server
+├── mcp_server.py        # MCP protocol server
+├── openclaw_trigger.py  # OpenClaw CLI trigger
+├── gui/                 # GUI module
+├── utils/               # Utilities
 │   ├── logger.py
 │   └── subtitle_extractor.py
-├── tests/              # Test suite
-├── docs/               # Documentation
-└── data/               # Runtime data (not committed)
+├── tests/               # Test suite
+├── docs/                # Documentation
+└── data/                # Runtime data (not committed)
 ```
 
 ## API Documentation
@@ -115,16 +141,13 @@ python -m pytest tests/ -v
 pyinstaller bilibili_ai_client.spec
 ```
 
-## Dependencies
+## Download exe (no install required)
 
-- PyQt6 >= 6.6.0
-- bilibili-api >= 6.4.0
-- requests >= 2.31.0
-- httpx >= 0.27.0
-- mcp >= 0.1.0
-- loguru >= 0.7.0
-- yt-dlp >= 2024.0.0
-- faster-whisper >= 1.0.0
+Download the packaged Windows executable directly from GitHub Releases:
+
+📦 **Download**: [BilibiliAIClient-win.zip](https://github.com/wsererer/bilibili-ai-client-gui/releases/latest)
+
+Extract and run `BilibiliAIClient.exe` directly, no Python environment required.
 
 ## License
 

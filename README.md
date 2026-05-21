@@ -7,22 +7,25 @@ B站 AI 客户端 - 自动获取字幕并 AI 回复 Bilibili 动态/评论
 ## 功能特性
 
 - 🤖 **AI 自动回复**: 自动回复 B站 动态和评论
-- 📝 **智能字幕提取**: 支持 B站字幕 > AI字幕 > yt-dlp > Whisper 多优先级链
-- 💬 **MCP 协议支持**: 通过 Model Context Protocol 与 AI Agent 通信
+- 📝 **智能字幕提取**: B站 API > yt-dlp > Whisper 多优先级链
+- 🔐 **QR码登录**: 支持 Cookie 认证，自动持久化
+- 📋 **白名单管理**: 仅处理白名单用户的评论，添加白名单后自动重新识别被拦截消息
 - 🖥️ **图形界面**: PyQt6 现代化 GUI
-- 🔐 **安全登录**: QR码登录，支持 Cookie 认证
+- 💬 **MCP 协议**: 通过 Model Context Protocol 与 AI Agent 通信
+- 🔗 **OpenClaw 集成**: 通过 CLI 命令触发 OpenClaw 处理视频
 
 ## 系统要求
 
 - Python 3.10+
 - Windows/Linux/macOS
+- [OpenClaw](https://openclaw.ai)（可选，用于 AI 处理视频）
 
 ## 安装
 
 ### 1. 克隆仓库
 
 ```bash
-git clone https://github.com/your-repo/bilibili-ai-client-gui.git
+git clone https://github.com/wsererer/bilibili-ai-client-gui.git
 cd bilibili-ai-client-gui
 ```
 
@@ -42,7 +45,7 @@ source venv/bin/activate
 pip install -r requirements.txt
 ```
 
-### 4. 下载 Whisper 模型
+### 4. 下载 Whisper 模型（可选）
 
 ```bash
 python download_model.py
@@ -71,12 +74,35 @@ python main.py --mode gui
 # MCP 模式 (供 AI Agent 调用)
 python main.py --mode mcp
 
-# Webhook 模式
+# Webhook 接收模式 (接收外部消息)
 python main.py --mode webhook
 
 # 所有模式
 python main.py --mode all
 ```
+
+## OpenClaw 集成
+
+软件通过 CLI 命令调用 OpenClaw 处理视频：
+
+```bash
+openclaw agent --message "处理视频任务..."
+```
+
+### 配置 OpenClaw 路径
+
+在 GUI 设置中可以自定义 OpenClaw 可执行文件路径（默认: `openclaw`）。
+
+如果 `openclaw` 不在系统 PATH 中，可以指定完整路径：
+```
+C:\Users\你的用户名\AppData\Roaming\npm\openclaw.cmd
+```
+
+## 白名单机制
+
+- 只有白名单用户的评论会被处理
+- 未白名单用户的评论会被记录为 `not_whitelisted` 状态
+- 添加新用户到白名单后，会自动重新处理该用户之前被拦截的评论
 
 ## 项目结构
 
@@ -87,9 +113,9 @@ bilibili-ai-client-gui/
 ├── database.py          # 数据库模块
 ├── bilibili_login.py    # QR码登录
 ├── message_poller.py    # 消息轮询
-├── webhook_server.py    # Webhook服务器
-├── mcp_server.py       # MCP协议服务器
-├── openclaw_trigger.py  # OpenClaw触发器
+├── webhook_server.py    # Webhook接收服务器
+├── mcp_server.py        # MCP协议服务器
+├── openclaw_trigger.py  # OpenClaw CLI触发器
 ├── gui/                 # GUI模块
 ├── utils/               # 工具模块
 │   ├── logger.py
@@ -114,17 +140,6 @@ python -m pytest tests/ -v
 ```bash
 pyinstaller bilibili_ai_client.spec
 ```
-
-## 依赖
-
-- PyQt6 >= 6.6.0
-- bilibili-api >= 6.4.0
-- requests >= 2.31.0
-- httpx >= 0.27.0
-- mcp >= 0.1.0
-- loguru >= 0.7.0
-- yt-dlp >= 2024.0.0
-- faster-whisper >= 1.0.0
 
 ## 下载 exe (免安装)
 
