@@ -41,7 +41,7 @@ BV号: {bv_id}
 
     def _trigger_sync(self, bv_id: str, message: str) -> bool:
         try:
-            session_id = f"bilibili-{bv_id}"
+            session_id = f"bilibili_{bv_id.replace('-', '_')}"
             cmd = [
                 self.openclaw_path, "agent",
                 "--message", message,
