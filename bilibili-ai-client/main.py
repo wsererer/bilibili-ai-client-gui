@@ -26,6 +26,51 @@ def parse_args():
     return parser.parse_args()
 
 
+def on_openclaw_complete(bv_id: str, success: bool, summary_text: str, error_msg: str):
+    """OpenClaw 处理完成回调"""
+    if success and summary_text:
+        logger.info(f"OpenClaw 处理完成: {bv_id}, 摘要长度: {len(summary_text)}")
+
+        pending_messages = database.get_pending_messages()
+        sender_uid = ""
+        sender_name = ""
+        for msg in pending_messages:
+            if msg.get("bv_id") == bv_id:
+                sender_uid = msg.get("sender_uid", "")
+                sender_name = msg.get("sender_name", "")
+                break
+
+        subtitle_text = ""
+        try:
+            subtitle_text = subtitle_extractor.extract_text(f"https://www.bilibili.com/video/{bv_id}")
+        except Exception:
+            pass
+
+        database.add_summary(
+            bv_id=bv_id,
+            sender_uid=sender_uid,
+            sender_name=sender_name,
+            subtitle_text=subtitle_text,
+            summary_text=summary_text
+        )
+
+        triggered_messages = database.get_messages(100)
+        for msg in triggered_messages:
+            if msg.get("bv_id") == bv_id and msg.get("status") == "triggered":
+                database.update_message_status(msg["id"], "processed")
+                break
+
+        logger.info(f"摘要已保存到数据库: {bv_id}")
+    else:
+        logger.error(f"OpenClaw 处理失败: {bv_id}, 错误: {error_msg}")
+
+        triggered_messages = database.get_messages(100)
+        for msg in triggered_messages:
+            if msg.get("bv_id") == bv_id and msg.get("status") == "triggered":
+                database.update_message_status(msg["id"], "openclaw_failed")
+                break
+
+
 async def process_new_message(msg: dict):
     logger.info(f"process_new_message called with: {msg}")
     bv_id = msg.get("bv_id", "")
@@ -71,6 +116,7 @@ async def process_new_message(msg: dict):
 
         if subtitle_text:
             openclaw_trigger.set_openclaw_path(config.get("openclaw_path", "openclaw"))
+            openclaw_trigger.set_callback(on_openclaw_complete)
             success = openclaw_trigger.trigger(
                 bv_id=bv_id,
                 subtitle_text=subtitle_text,
