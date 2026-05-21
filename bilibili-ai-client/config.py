@@ -19,6 +19,10 @@ DEFAULT_CONFIG = {
     "window_geometry": None,
     "last_login_uid": None,
     "bili_auth": "",
+    "auto_send": False,
+    "send_channel": "wechat",
+    "wechat_target": "",
+    "feishu_target": "",
 }
 
 

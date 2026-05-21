@@ -4,6 +4,7 @@ import uuid
 from pathlib import Path
 from typing import Optional, Callable
 from utils.logger import logger
+from config import config
 
 
 class OpenClawTrigger:
@@ -27,6 +28,18 @@ class OpenClawTrigger:
         if sender_name:
             sender_info += f" ({sender_name})"
 
+        # 构建发送指令
+        send_instruction = ""
+        auto_send = config.get("auto_send", False)
+        if auto_send:
+            send_channel = config.get("send_channel", "wechat")
+            if send_channel == "wechat":
+                send_instruction = "\n【重要】处理完成后，通过微信发送摘要给用户"
+            elif send_channel == "feishu":
+                send_instruction = "\n【重要】处理完成后，通过飞书发送摘要给用户"
+            elif send_channel == "both":
+                send_instruction = "\n【重要】处理完成后，通过微信和飞书发送摘要给用户"
+
         return f"""处理视频任务
 ==========
 BV号: {bv_id}
@@ -38,6 +51,7 @@ BV号: {bv_id}
 
 请生成视频摘要并保存到 ~/.openclaw/workspace/bilibili-summaries/ 目录。
 格式: {{日期}}/{{BV号}}.md
+{send_instruction}
 """
 
     def _trigger_sync(self, bv_id: str, message: str) -> bool:

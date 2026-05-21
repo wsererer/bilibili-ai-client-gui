@@ -243,6 +243,38 @@ class MainWindow:
         self.auto_start_var = tk.BooleanVar(value=config.get("auto_start", True))
         ttk.Checkbutton(settings_frame, text="启动时自动开始轮询", variable=self.auto_start_var).pack(anchor=tk.W, pady=(0, 20))
 
+        # 摘要推送设置
+        ttk.Separator(settings_frame, orient=tk.HORIZONTAL).pack(fill=tk.X, pady=10)
+        ttk.Label(settings_frame, text="摘要推送设置", font=("", 10, "bold")).pack(anchor=tk.W, pady=(0, 10))
+
+        self.auto_send_var = tk.BooleanVar(value=config.get("auto_send", False))
+        ttk.Checkbutton(settings_frame, text="启用摘要自动推送", variable=self.auto_send_var).pack(anchor=tk.W, pady=(0, 10))
+
+        channel_frame = ttk.Frame(settings_frame)
+        channel_frame.pack(fill=tk.X, pady=(0, 10))
+        ttk.Label(channel_frame, text="推送渠道:").pack(side=tk.LEFT)
+
+        self.send_channel_var = tk.StringVar(value=config.get("send_channel", "wechat"))
+        ttk.Radiobutton(channel_frame, text="微信", variable=self.send_channel_var, value="wechat").pack(side=tk.LEFT, padx=10)
+        ttk.Radiobutton(channel_frame, text="飞书", variable=self.send_channel_var, value="feishu").pack(side=tk.LEFT, padx=10)
+        ttk.Radiobutton(channel_frame, text="两者", variable=self.send_channel_var, value="both").pack(side=tk.LEFT, padx=10)
+
+        ttk.Label(settings_frame, text="微信目标账号:").pack(anchor=tk.W, pady=(0, 5))
+        wechat_frame = ttk.Frame(settings_frame)
+        wechat_frame.pack(fill=tk.X, pady=(0, 10))
+
+        self.wechat_target_entry = ttk.Entry(wechat_frame, width=50)
+        self.wechat_target_entry.pack(side=tk.LEFT, fill=tk.X, expand=True)
+        self.wechat_target_entry.insert(0, config.get("wechat_target", ""))
+
+        ttk.Label(settings_frame, text="飞书目标账号:").pack(anchor=tk.W, pady=(0, 5))
+        feishu_frame = ttk.Frame(settings_frame)
+        feishu_frame.pack(fill=tk.X, pady=(0, 20))
+
+        self.feishu_target_entry = ttk.Entry(feishu_frame, width=50)
+        self.feishu_target_entry.pack(side=tk.LEFT, fill=tk.X, expand=True)
+        self.feishu_target_entry.insert(0, config.get("feishu_target", ""))
+
         ttk.Button(settings_frame, text="保存设置", command=self._save_settings).pack(pady=10)
 
     def _save_settings(self):
@@ -250,6 +282,10 @@ class MainWindow:
         openclaw_path = self.openclaw_path_entry.get().strip()
         port = self.port_entry.get().strip()
         auto_start = self.auto_start_var.get()
+        auto_send = self.auto_send_var.get()
+        send_channel = self.send_channel_var.get()
+        wechat_target = self.wechat_target_entry.get().strip()
+        feishu_target = self.feishu_target_entry.get().strip()
 
         try:
             config.set("polling_interval", int(interval))
@@ -261,6 +297,10 @@ class MainWindow:
         except ValueError:
             pass
         config.set("auto_start", auto_start)
+        config.set("auto_send", auto_send)
+        config.set("send_channel", send_channel)
+        config.set("wechat_target", wechat_target)
+        config.set("feishu_target", feishu_target)
 
         self._set_status("设置已保存")
 
