@@ -517,40 +517,44 @@ class MainWindow:
             self._set_status("已登录，无需重新扫码")
             return
 
+        logger.info("用户点击网页登录，启动QR登录流程")
         self._set_status("正在启动登录服务...")
 
         def start_server():
-            from bilibili_login import run_login_server
-            run_login_server(51888)
+            try:
+                from bilibili_login import run_login_server
+                logger.info("Flask登录服务线程启动，监听端口51888")
+                run_login_server(51888)
+            except Exception as e:
+                logger.error(f"Flask登录服务启动失败: {e}")
 
         def check_login():
             try:
-                from utils.app_data import APP_DATA_DIR
-                cookie_file = APP_DATA_DIR / "login_cookie.txt"
-                if cookie_file.exists():
-                    cookie = cookie_file.read_text(encoding='utf-8').strip()
-                    if cookie:
-                        config.set("bili_auth", cookie)
-                        self.auth_entry.config(state="normal")
-                        self.auth_entry.delete("1.0", tk.END)
-                        self.auth_entry.insert("1.0", "登录成功！")
-                        self.auth_entry.config(state="disabled")
-                        self._set_status("B站登录成功！")
-                        try:
-                            import requests
-                            requests.post("http://127.0.0.1:51888/close", timeout=2)
-                        except Exception:
-                            pass
-                        return True
+                cookie = config.get("bili_auth", "")
+                if cookie and "SESSDATA" in cookie:
+                    self.auth_entry.config(state="normal")
+                    self.auth_entry.delete("1.0", tk.END)
+                    self.auth_entry.insert("1.0", "登录成功！")
+                    self.auth_entry.config(state="disabled")
+                    self._set_status("B站登录成功！")
+                    try:
+                        import requests
+                        requests.post("http://127.0.0.1:51888/close", timeout=2)
+                    except Exception:
+                        pass
+                    return True
             except Exception as e:
                 self._set_status(f"检查登录状态: {e}")
             return False
 
         def poll_login():
-            for _ in range(120):
+            logger.info("开始轮询登录状态（最长120秒）")
+            for i in range(120):
                 time.sleep(1)
                 if check_login():
+                    logger.info("QR登录成功，cookie已保存")
                     return
+            logger.warning("QR登录超时（120秒）")
             self._set_status("登录超时，请重试")
 
         server_thread = threading.Thread(target=start_server, daemon=True)
@@ -598,6 +602,14 @@ class MainWindow:
 
     def _clear_cookie(self):
         config.set("bili_auth", "")
+        try:
+            from utils.app_data import APP_DATA_DIR
+            cookie_file = APP_DATA_DIR / "login_cookie.txt"
+            if cookie_file.exists():
+                cookie_file.unlink()
+                logger.info("已清除 login_cookie.txt")
+        except Exception as e:
+            logger.error(f"清除 login_cookie.txt 失败: {e}")
         self.auth_entry.config(state="normal")
         self.auth_entry.delete("1.0", tk.END)
         self.auth_entry.insert("1.0", "未登录")

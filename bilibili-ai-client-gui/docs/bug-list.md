@@ -26,11 +26,14 @@
 | B-20 | `test_server_start_stop` 的 `assert server.server is None` 与实现不符 | `tests/test_webhook_server.py:56,58` | 中 | ✅ 已修复 |
 | B-21 | `conftest.py` 中 `temp_db` fixture 使用硬编码路径而非导入 `DB_FILE` | `tests/conftest.py:15` | 低 | ✅ 已修复 |
 | B-22 | Windows `cmd.exe` 通过 `.cmd` 批处理文件传递含换行符的长参数时静默损坏参数，导致 OpenClaw "Gateway agent failed" 错误 | `openclaw_trigger.py` | 严重 | ✅ 已修复（文件传参法） |
+| B-23 | 推送指令缺少目标账号，OpenClaw 尝试 `self` 失败（`Unknown target "self"`） | `openclaw_trigger.py:55-64` | 高 | ✅ 已修复（从 config 读取 `wechat_target`/`feishu_target` 拼入提示词） |
+| B-24 | `check_login()` 轮询 `login_cookie.txt` 文件不可靠，QR 登录后 cookie 未保存 | `gui/main_window.py:526-544` | 高 | ✅ 已修复（改为直接检查 `config.get("bili_auth")` 单例） |
+| B-25 | `_clear_cookie()` 不清除 `login_cookie.txt`，残留旧 cookie | `gui/main_window.py:599-605` | 低 | ✅ 已修复（同时删除 `login_cookie.txt`） |
 
 ## 统计
 
 | 状态 | 数量 |
 |------|------|
-| 已修复 | 22 |
+| 已修复 | 25 |
 | 未修复 | 0 |
-| 合计 | 22 |
+| 合计 | 25 |

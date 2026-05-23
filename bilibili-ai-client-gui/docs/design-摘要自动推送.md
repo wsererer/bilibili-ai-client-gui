@@ -75,36 +75,33 @@
 **`_build_message` 方法**：
 
 ```python
-def _build_message(self, bv_id: str, subtitle_text: str, sender_uid: str, sender_name: str) -> str:
+def _build_message(self, bv_id: str, subtitle_path: str, sender_uid: str, sender_name: str) -> str:
     sender_info = f"发送者UID: {sender_uid}"
     if sender_name:
         sender_info += f" ({sender_name})"
 
-    # 构建发送指令
     send_instruction = ""
     auto_send = config.get("auto_send", False)
     if auto_send:
         send_channel = config.get("send_channel", "wechat")
+        wechat_target = config.get("wechat_target", "")
+        feishu_target = config.get("feishu_target", "")
         if send_channel == "wechat":
-            send_instruction = "\n【重要】处理完成后，通过微信发送摘要给用户"
+            target = f"，目标账号: {wechat_target}" if wechat_target else ""
+            send_instruction = f" | 【重要】处理完成后，通过微信发送摘要给用户{target}"
         elif send_channel == "feishu":
-            send_instruction = "\n【重要】处理完成后，通过飞书发送摘要给用户"
+            target = f"，目标账号: {feishu_target}" if feishu_target else ""
+            send_instruction = f" | 【重要】处理完成后，通过飞书发送摘要给用户{target}"
         elif send_channel == "both":
-            send_instruction = "\n【重要】处理完成后，通过微信和飞书发送摘要给用户"
+            target_w = f"，微信目标账号: {wechat_target}" if wechat_target else ""
+            target_f = f"，飞书目标账号: {feishu_target}" if feishu_target else ""
+            send_instruction = f" | 【重要】处理完成后，通过微信和飞书发送摘要给用户{target_w}{target_f}"
 
-    return f"""处理视频任务
-==========
-BV号: {bv_id}
-{sender_info}
-
-字幕内容:
-{subtitle_text[:5000]}
-==========
-
-请生成视频摘要并保存到 ~/.openclaw/workspace/bilibili-summaries/ 目录。
-格式: {{日期}}/{{BV号}}.md
-{send_instruction}
-"""
+    return (f"处理视频任务 | BV号: {bv_id} | {sender_info} | "
+            f"请使用 read 工具读取字幕文件，然后生成视频摘要并保存 | "
+            f"字幕文件路径: {subtitle_path} | "
+            f"请生成视频摘要并保存到 ~/.openclaw/workspace/bilibili-summaries/ 目录 | "
+            f"格式: 日期/BV号.md{send_instruction}")
 ```
 
 ---
@@ -194,26 +191,17 @@ def _save_settings(self):
 ```json
 {
   "auto_send": true,
-  "send_channel": "wechat"
+  "send_channel": "wechat",
+  "wechat_target": "o9cq...@im.wechat"
 }
 ```
 
 **生成的指令**：
 ```
-处理视频任务
-==========
-BV号: BV1xxx
-发送者UID: 123456 (test_user)
-
-字幕内容:
-...
-==========
-
-请生成视频摘要并保存到 ~/.openclaw/workspace/bilibili-summaries/ 目录。
-格式: {日期}/{BV号}.md
-
-【重要】处理完成后，通过微信发送摘要给用户
+处理视频任务 | BV号: BV1xxx | 发送者UID: 123456 (test_user) | 请使用 read 工具读取字幕文件，然后生成视频摘要并保存 | 字幕文件路径: C:\Users\...\Temp\BV1xxx_sub_xxx.txt | 请生成视频摘要并保存到 ~/.openclaw/workspace/bilibili-summaries/ 目录 | 格式: 日期/BV号.md | 【重要】处理完成后，通过微信发送摘要给用户，目标账号: o9cq...@im.wechat
 ```
+
+> 目标账号为空时不会附加 `，目标账号:` 部分，OpenClaw 默认使用 `self`。
 
 ### 6.2 飞书推送
 
@@ -221,15 +209,14 @@ BV号: BV1xxx
 ```json
 {
   "auto_send": true,
-  "send_channel": "feishu"
+  "send_channel": "feishu",
+  "feishu_target": "user@feishu"
 }
 ```
 
 **生成的指令**：
 ```
-...
-
-【重要】处理完成后，通过飞书发送摘要给用户
+... | 【重要】处理完成后，通过飞书发送摘要给用户，目标账号: user@feishu
 ```
 
 ### 6.3 双渠道推送
@@ -238,15 +225,15 @@ BV号: BV1xxx
 ```json
 {
   "auto_send": true,
-  "send_channel": "both"
+  "send_channel": "both",
+  "wechat_target": "o9cq...@im.wechat",
+  "feishu_target": "user@feishu"
 }
 ```
 
 **生成的指令**：
 ```
-...
-
-【重要】处理完成后，通过微信和飞书发送摘要给用户
+... | 【重要】处理完成后，通过微信和飞书发送摘要给用户，微信目标账号: o9cq...@im.wechat，飞书目标账号: user@feishu
 ```
 
 ---

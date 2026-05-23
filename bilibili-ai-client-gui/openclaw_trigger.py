@@ -56,12 +56,18 @@ class OpenClawTrigger:
         auto_send = config.get("auto_send", False)
         if auto_send:
             send_channel = config.get("send_channel", "wechat")
+            wechat_target = config.get("wechat_target", "")
+            feishu_target = config.get("feishu_target", "")
             if send_channel == "wechat":
-                send_instruction = " | 【重要】处理完成后，通过微信发送摘要给用户"
+                target = f"，目标账号: {wechat_target}" if wechat_target else ""
+                send_instruction = f" | 【重要】处理完成后，通过微信发送摘要给用户{target}"
             elif send_channel == "feishu":
-                send_instruction = " | 【重要】处理完成后，通过飞书发送摘要给用户"
+                target = f"，目标账号: {feishu_target}" if feishu_target else ""
+                send_instruction = f" | 【重要】处理完成后，通过飞书发送摘要给用户{target}"
             elif send_channel == "both":
-                send_instruction = " | 【重要】处理完成后，通过微信和飞书发送摘要给用户"
+                target_w = f"，微信目标账号: {wechat_target}" if wechat_target else ""
+                target_f = f"，飞书目标账号: {feishu_target}" if feishu_target else ""
+                send_instruction = f" | 【重要】处理完成后，通过微信和飞书发送摘要给用户{target_w}{target_f}"
 
         return (f"处理视频任务 | BV号: {bv_id} | {sender_info} | "
                 f"请使用 read 工具读取字幕文件，然后生成视频摘要并保存 | "

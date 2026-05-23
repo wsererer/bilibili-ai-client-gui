@@ -202,14 +202,21 @@ openclaw agent --message "..." --agent main --json
 | Config Key | Description | Default |
 |-----------|-------------|---------|
 | `openclaw_path` | Path to openclaw executable | `openclaw` |
+| `auto_send` | Enable auto-send after summary | `false` |
+| `send_channel` | Send channel (wechat/feishu/both) | `wechat` |
+| `wechat_target` | WeChat target account ID | `""` |
+| `feishu_target` | Feishu target account ID | `""` |
 
 ### Message Format (File-Based Approach)
 
 **v2.0 变更**: 字幕文本不再嵌入 `--message` 参数，改为写入临时文件，`--message` 中仅携带文件路径和 read 指令。
 
 ```
-处理视频任务 | BV号: BV1xx411c7mD | 发送者UID: 123456 (username) | 请使用 read 工具读取字幕文件，然后生成视频摘要并保存 | 字幕文件路径: C:\Users\xxx\AppData\Local\Temp\BV1xxx_sub_abc123.txt | 请生成视频摘要并保存到 ~/.openclaw/workspace/bilibili-summaries/ 目录 | 格式: 日期/BV号.md
+处理视频任务 | BV号: BV1xx411c7mD | 发送者UID: 123456 (username) | 请使用 read 工具读取字幕文件，然后生成视频摘要并保存 | 字幕文件路径: C:\Users\xxx\AppData\Local\Temp\BV1xxx_sub_abc123.txt | 请生成视频摘要并保存到 ~/.openclaw/workspace/bilibili-summaries/ 目录 | 格式: 日期/BV号.md | 【重要】处理完成后，通过微信发送摘要给用户，目标账号: o9cq...@im.wechat
 ```
+
+当 `auto_send=true` 且目标账号已配置时，末尾会追加发送指令及目标账号。
+目标账号为空时不附加 `，目标账号:` 部分。
 
 关键设计决策：
 - `--message` 为**单行**（无换行符），避免 Windows `cmd.exe` 解析 `.cmd` 批处理文件时损坏参数
