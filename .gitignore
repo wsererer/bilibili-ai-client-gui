@@ -1,0 +1,36 @@
+# Data and generated files
+data/
+dist/
+build/
+*.pyc
+__pycache__/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+
+# Databases
+*.db
+
+# Config with secrets
+# data/config.json
+# data/login_cookie.txt
+
+# Old project (deprecated)
+bilibili-ai-client/
+
+# Backup
+bilibili-ai-client-gui_backup_*/
+
+# Test scripts (local only)
+test_*.ps1
+test_*.py
+!bilibili-ai-client-gui/tests/

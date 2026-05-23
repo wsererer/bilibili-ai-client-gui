@@ -1,0 +1,35 @@
+# Bilibili AI Client Dependencies
+# Python 3.11+ required
+
+# GUI (using tkinter, included in Python standard library)
+
+# B站API
+bilibili-api>=6.4.0
+
+# HTTP requests
+requests>=2.31.0
+httpx>=0.27.0
+
+# Database
+sqlite-utils>=3.35
+
+# MCP Protocol
+mcp>=0.1.0
+
+# Logging
+loguru>=0.7.0
+
+# QR Code for login
+qrcode>=7.4.2
+Pillow>=10.0.0
+
+# Async runtime
+anyio>=4.0.0
+aiohttp>=3.9.0
+
+# Subtitle extraction
+yt-dlp>=2024.0.0
+faster-whisper>=1.0.0
+
+# Build
+PyInstaller>=6.0.0
