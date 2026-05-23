@@ -39,7 +39,7 @@ class ExtractResult:
 
 SUPPORTED_EXTS = {".srt", ".vtt", ".json", ".txt"}
 AUDIO_EXTS = {".m4a", ".mp3", ".webm", ".wav", ".mp4", ".aac", ".flac", ".ogg", ".opus"}
-DEFAULT_LANGS = "zh.*,zh-CN,zh-Hans,zh-Hant,en.*"
+DEFAULT_LANGS = "zh-CN,zh-Hans,zh-Hant,zh,en,ja"
 
 
 def ensure_dependency() -> None:
@@ -282,17 +282,23 @@ def _fetch_subtitles_from_bilibili_api(
         log(f"B站 player/v2 API 失败：{exc}")
         return None
 
+    player_data_code = player_data.get("code", 0)
+    if player_data_code != 0:
+        log(f"B站 player/v2 API 返回错误 code={player_data_code}（Cookie 可能已过期）")
+        return None
+
     subtitles_data = player_data.get("data", {}).get("subtitle", {})
     if not subtitles_data:
+        log("B站 API 返回的字幕数据为空（视频可能没有内置字幕，或 Cookie 权限不足）")
         return None
 
     subtitle_list = subtitles_data.get("subtitles", []) or subtitles_data.get("list", [])
     if not subtitle_list:
+        log("B站 API 字幕列表为空")
         return None
 
-    user_subtitle = None
-    for _ in range(5):
-        for sub in subtitle_list:
+    def pick_best_sub(sub_list):
+        for sub in sub_list:
             sub_url = sub.get("subtitle_url", "")
             if not sub_url:
                 continue
@@ -300,50 +306,30 @@ def _fetch_subtitles_from_bilibili_api(
                 sub_url = "https:" + sub_url
             lan = sub.get("lan", "unknown")
             sub_type = sub.get("type", -1)
-            if sub_type == 0 and lan in ("zh", "zh-CN", "zh-Hans", "zh-Hant"):
-                user_subtitle = (sub, sub_url, lan)
-                break
-        if user_subtitle:
-            break
-        import time
-        time.sleep(0.3)
-        resp_retry = httpx.get(player_url, params={"cid": cid, "bvid": bv_id}, headers=headers, timeout=10)
-        player_data = resp_retry.json()
-        subtitles_data = player_data.get("data", {}).get("subtitle", {})
-        subtitle_list = subtitles_data.get("subtitles", []) or subtitles_data.get("list", [])
-
-    if user_subtitle:
-        best_sub, sub_url, lan = user_subtitle
-        _priority = 0
-    elif subtitle_list:
-        for sub in subtitle_list:
-            sub_url = sub.get("subtitle_url", "")
-            if not sub_url:
-                continue
-            if sub_url.startswith("//"):
-                sub_url = "https:" + sub_url
-            lan = sub.get("lan", "unknown")
-            sub_type = sub.get("type", -1)
-            if sub_type == 1:
-                _priority = 1
-                break
-        else:
-            return None
-    else:
+            priority = 0 if sub_type == 0 else 1  # type=0 = 用户字幕（优先）
+            return (sub, sub_url, lan, priority)
         return None
+
+    best = pick_best_sub(subtitle_list)
+    if not best:
+        log("B站 API 中所有字幕项均缺少 subtitle_url")
+        return None
+
+    sub, sub_url, lan, _priority = best
 
     if cookie and len(cookie) > 50:
         from utils.app_data import APP_DATA_DIR
         output_dir = APP_DATA_DIR / "subtitles"
         output_dir.mkdir(parents=True, exist_ok=True)
         safe_title = sanitize_filename(bv_id)
-        out_path = output_dir / f"{safe_title}.{lan}.json"
+        ext = "json"
+        out_path = output_dir / f"{safe_title}.{lan}.{ext}"
 
         try:
-            req = Request(sub_url, headers={"User-Agent": "Mozilla/5.0"})
+            req = Request(sub_url, headers={"User-Agent": "Mozilla/5.0", "Referer": "https://www.bilibili.com"})
             with urlopen(req, timeout=60) as resp, out_path.open("wb") as f:
                 shutil.copyfileobj(resp, f)
-            log(f"通过 B站 API 获取字幕：{lan} (优先级: {'用户' if _priority == 0 else 'AI'})")
+            log(f"通过 B站 API 获取字幕：{lan} (类型: {'用户' if _priority == 0 else 'AI'})")
             return out_path
         except Exception as exc:
             log(f"字幕下载失败：{exc}")
@@ -423,34 +409,46 @@ def try_download_subtitle_with_ytdlp(
 ) -> Optional[Path]:
     ensure_dependency()
     before = set(output_dir.rglob("*"))
-    opts = {
-        "skip_download": True,
-        "writesubtitles": True,
-        "writeautomaticsub": True,
-        "subtitleslangs": preferred_langs,
-        "subtitlesformat": "srt/vtt/best",
-        "paths": {"home": str(output_dir), "subtitle": str(output_dir)},
-        "outtmpl": {"default": "%(title).80s [%(id)s].%(ext)s"},
-        "compat_opts": ["no-live-chat"],
-        "quiet": True,
-        "no_warnings": True,
-        "restrictfilenames": False,
-        "http_headers": {
-            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-            "Referer": "https://www.bilibili.com",
-        },
-    }
-    if cookie:
-        opts["http_headers"]["Cookie"] = cookie
-    try:
-        with yt_dlp.YoutubeDL(opts) as ydl:
-            ydl.download([url])
-    except Exception as exc:
-        log(f"yt-dlp 直接下载字幕失败：{exc}")
-        return None
-    after = set(output_dir.rglob("*"))
-    new_files = [p for p in after - before if p.is_file() and p.suffix.lower() in SUPPORTED_EXTS]
-    return choose_best_file(new_files)
+
+    def _try_with_langs(langs: List[str]) -> Optional[Path]:
+        opts = {
+            "skip_download": True,
+            "writesubtitles": True,
+            "writeautomaticsub": True,
+            "subtitleslangs": langs,
+            "subtitlesformat": "srt/vtt/best",
+            "paths": {"home": str(output_dir), "subtitle": str(output_dir)},
+            "outtmpl": {"default": "%(title).80s [%(id)s].%(ext)s"},
+            "compat_opts": ["no-live-chat"],
+            "quiet": True,
+            "no_warnings": True,
+            "restrictfilenames": False,
+            "http_headers": {
+                "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+                "Referer": "https://www.bilibili.com",
+            },
+        }
+        if cookie:
+            opts["http_headers"]["Cookie"] = cookie
+        try:
+            with yt_dlp.YoutubeDL(opts) as ydl:
+                ydl.download([url])
+        except Exception:
+            return None
+        after = set(output_dir.rglob("*"))
+        new_files = [p for p in after - before if p.is_file() and p.suffix.lower() in SUPPORTED_EXTS]
+        return choose_best_file(new_files)
+
+    result = _try_with_langs(preferred_langs)
+    if result:
+        return result
+
+    log(f"首选语言 {preferred_langs} 未找到字幕，尝试所有语言...")
+    result = _try_with_langs(["all"])
+    if result:
+        return result
+
+    return None
 
 
 def download_audio(

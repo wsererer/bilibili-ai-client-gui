@@ -212,7 +212,7 @@ openclaw agent --message "..." --agent main --json
 **v2.0 变更**: 字幕文本不再嵌入 `--message` 参数，改为写入临时文件，`--message` 中仅携带文件路径和 read 指令。
 
 ```
-处理视频任务 | BV号: BV1xx411c7mD | 发送者UID: 123456 (username) | 请使用 read 工具读取字幕文件，然后生成视频摘要并保存 | 字幕文件路径: C:\Users\xxx\AppData\Local\Temp\BV1xxx_sub_abc123.txt | 请生成视频摘要并保存到 ~/.openclaw/workspace/bilibili-summaries/ 目录 | 格式: 日期/BV号.md | 【重要】处理完成后，通过微信发送摘要给用户，目标账号: o9cq...@im.wechat
+处理视频任务 | BV号: BV1xx411c7mD | 发送者UID: 123456 (username) | 请使用 read 工具读取字幕文件，然后生成视频摘要并保存 | 字幕文件路径: C:\Users\xxx\AppData\Local\Temp\BV1xxx_sub_abc123.txt | 请生成视频摘要并保存到 ~/.openclaw/workspace/bilibili-summaries/ 目录 | 格式: 日期/BV号.md | 【重要】处理完成后，通过微信发送摘要给用户，目标账号: wx_...@im.wechat
 ```
 
 当 `auto_send=true` 且目标账号已配置时，末尾会追加发送指令及目标账号。

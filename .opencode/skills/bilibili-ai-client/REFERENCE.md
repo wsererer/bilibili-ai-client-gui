@@ -1,5 +1,15 @@
 # Bilibili AI Client — 参考文档
 
+## 首次设置流程
+
+1. **安装依赖**：`pip install -r requirements.txt` + whisper model
+2. **启动 GUI**：`python main.py --mode gui`
+3. **白名单**：设置 → 白名单 → 添加 B站 UID（否则 @消息被忽略）
+4. **B站 Cookie**：网页登录扫码 或 手动粘贴 Cookie
+5. **OpenClaw 路径**：填写 openclaw 可执行文件路径
+6. **自动推送**（可选）：启用 → 选渠道 → 填目标账号 → 保存
+7. **等待消息**：轮询自动开始，收到 @消息后依次：字幕提取 → OpenClaw → 推送
+
 ## MCP 工具接口
 
 `mcp_server.py` 当前 6 个工具，通过 `server.list_tools()` 注册：

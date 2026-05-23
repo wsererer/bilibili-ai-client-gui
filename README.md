@@ -31,7 +31,7 @@ Webhook ◀──外部系统（n8n等）─────────────
 - Windows/Linux/macOS
 - [OpenClaw](https://openclaw.ai)（可选，用于 AI 生成摘要）
 
-## 安装
+## 安装与设置
 
 ### 1. 克隆仓库
 
@@ -59,17 +59,51 @@ pip install -r requirements.txt
 ### 4. 获取 Whisper 模型
 
 ```bash
-# 方式一：从 bilibili-ai-client 复制 whisper_model 文件夹（约 3.7GB）
+# 方式一：从 bilibili-ai-client 复制 whisper_model 文件夹
 # 方式二：下载模型
 python download_model.py
 ```
 
-### 5. 登录
+### 5. 首次运行配置
+
+启动 GUI：
 
 ```bash
 python main.py --mode gui
 ```
-使用 QR 码登录 B站 账号。Cookie 自动加密存储。
+
+打开 **设置** 面板，按以下步骤配置：
+
+#### 5.1 添加白名单
+只有白名单用户的 @消息才会被处理。在设置页面的"白名单"区域：
+- 输入你的 B站 UID（数字）
+- 点击"添加"
+- （测试时可先添加 `17709654`）
+
+#### 5.2 登录 B站
+- **方式一（推荐）**：点击"网页登录" → 浏览器打开二维码 → 用 B站 App 扫码 → 自动保存 Cookie
+- **方式二**：点击"手动输入 Cookie" → 在浏览器 F12 → Application → Cookies → 复制 `SESSDATA=xxx; bili_jct=xxx; DedeUserID=xxx` → 粘贴到输入框
+
+登录成功后消息轮询自动开始。
+
+#### 5.3 配置 OpenClaw 路径
+如果安装了 OpenClaw：
+- 在设置页面的"OpenClaw 路径"输入框填写路径
+- 默认：`openclaw`（已加入 PATH 时）
+- Windows 常见路径：`C:\Users\xxx\AppData\Roaming\npm\openclaw.cmd`
+- 远程部署：确保 OpenClaw 在本机可执行
+
+#### 5.4 配置自动推送（可选）
+摘要生成后自动推送到微信或飞书：
+
+1. 勾选"启用摘要自动推送"
+2. 选择推送渠道：微信 / 飞书 / 两者
+3. 填写目标账号：
+   - **微信目标账号**：从 OpenClaw 获取你的 chat_id（格式如 `wx_xxxx@im.wechat`）
+   - **飞书目标账号**：你的飞书用户 ID
+4. 点击"保存设置"
+
+> 目标账号为空时，OpenClaw 不会附加目标参数，推送可能失败。
 
 ### 6. 运行
 

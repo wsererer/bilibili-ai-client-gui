@@ -67,6 +67,27 @@ pyinstaller bilibili_ai_client_gui.spec --clean --noconfirm
 # Output: dist/BilibiliAIClient.exe
 ```
 
+## Setup Guide
+
+### 1. 依赖安装
+```bash
+pip install -r requirements.txt
+```
+Whisper 模型：复制或运行 `python download_model.py`
+
+### 2. 白名单设置
+GUI 设置 → 白名单 → 添加 B站 UID。只有白名单用户的 @消息会被处理。
+
+### 3. B站 Cookie 登录
+- **QR 码登录**：点击"网页登录" → 浏览器扫码
+- **手动输入**：F12 → Application → Cookies → 复制 `SESSDATA=xxx; bili_jct=xxx; DedeUserID=xxx`
+
+### 4. OpenClaw 路径
+设置 → "OpenClaw 路径" → 填入可执行文件路径（默认 `openclaw`）
+
+### 5. 自动推送（可选）
+勾选"启用摘要自动推送" → 选择渠道 → 填写微信/飞书目标账号 → 保存
+
 ## OpenClaw Integration
 
 ### File-Based Approach (B-22 修复)
@@ -128,7 +149,7 @@ openclaw agent --message "处理视频任务 | BV号: {bv_id} | 发送者UID: {u
 
 ## Bug Fix History
 
-全部 25 个已知 Bug 已修复（B-01 ~ B-25），详见 `docs/bug-list.md`。
+全部 26 个已知 Bug 已修复（B-01 ~ B-26），详见 `docs/bug-list.md`。
 
 ### 近期修复
 
@@ -137,3 +158,4 @@ openclaw agent --message "处理视频任务 | BV号: {bv_id} | 发送者UID: {u
 | B-23 | 推送指令缺少目标账号，OpenClaw 报 Unknown target | `openclaw_trigger.py:55-64` |
 | B-24 | check_login() 轮询文件不可靠，QR 登录后 cookie 未保存 | `gui/main_window.py:526-544` |
 | B-25 | _clear_cookie() 不清除 login_cookie.txt | `gui/main_window.py:599-605` |
+| B-26 | ext 提取逻辑取域名后半段作扩展名，生成非法文件路径导致字幕下载失败 | `utils/subtitle_extractor.py:325` |

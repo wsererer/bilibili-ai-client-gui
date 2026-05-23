@@ -57,7 +57,7 @@
 {
   "auto_send": true,
   "send_channel": "wechat",
-  "wechat_target": "o9cq801q...",
+  "wechat_target": "wx_801q...",
   "feishu_target": ""
 }
 ```
@@ -119,7 +119,7 @@ def _build_message(self, bv_id: str, subtitle_path: str, sender_uid: str, sender
 │ 推送渠道:                                                 │
 │   (•)微信  ( )飞书  ( )两者                               │
 │                                                          │
-│ 微信目标: [o9cq801q...]                                  │
+│ 微信目标: [wx_801q...]                                  │
 │                                                          │
 │ 飞书目标: [                                              ] │
 └─────────────────────────────────────────────────────────┘
@@ -192,13 +192,13 @@ def _save_settings(self):
 {
   "auto_send": true,
   "send_channel": "wechat",
-  "wechat_target": "o9cq...@im.wechat"
+  "wechat_target": "wx_...@im.wechat"
 }
 ```
 
 **生成的指令**：
 ```
-处理视频任务 | BV号: BV1xxx | 发送者UID: 123456 (test_user) | 请使用 read 工具读取字幕文件，然后生成视频摘要并保存 | 字幕文件路径: C:\Users\...\Temp\BV1xxx_sub_xxx.txt | 请生成视频摘要并保存到 ~/.openclaw/workspace/bilibili-summaries/ 目录 | 格式: 日期/BV号.md | 【重要】处理完成后，通过微信发送摘要给用户，目标账号: o9cq...@im.wechat
+处理视频任务 | BV号: BV1xxx | 发送者UID: 123456 (test_user) | 请使用 read 工具读取字幕文件，然后生成视频摘要并保存 | 字幕文件路径: C:\Users\...\Temp\BV1xxx_sub_xxx.txt | 请生成视频摘要并保存到 ~/.openclaw/workspace/bilibili-summaries/ 目录 | 格式: 日期/BV号.md | 【重要】处理完成后，通过微信发送摘要给用户，目标账号: wx_...@im.wechat
 ```
 
 > 目标账号为空时不会附加 `，目标账号:` 部分，OpenClaw 默认使用 `self`。
@@ -226,14 +226,14 @@ def _save_settings(self):
 {
   "auto_send": true,
   "send_channel": "both",
-  "wechat_target": "o9cq...@im.wechat",
+  "wechat_target": "wx_...@im.wechat",
   "feishu_target": "user@feishu"
 }
 ```
 
 **生成的指令**：
 ```
-... | 【重要】处理完成后，通过微信和飞书发送摘要给用户，微信目标账号: o9cq...@im.wechat，飞书目标账号: user@feishu
+... | 【重要】处理完成后，通过微信和飞书发送摘要给用户，微信目标账号: wx_...@im.wechat，飞书目标账号: user@feishu
 ```
 
 ---

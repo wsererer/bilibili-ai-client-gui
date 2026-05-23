@@ -26,6 +26,7 @@ Thumbs.db
 
 # Old project (deprecated)
 bilibili-ai-client/
+bilibili-ai-client-gui/
 
 # Backup
 bilibili-ai-client-gui_backup_*/

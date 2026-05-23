@@ -4,10 +4,10 @@ block_cipher = None
 
 a = Analysis(
     ['main.py'],
-    pathex=[''],
+    pathex=['bilibili-ai-client-gui'],
     binaries=[],
     datas=[
-        ('whisper_model', 'whisper_model'),
+        ('bilibili-ai-client-gui/whisper_model', 'whisper_model'),
     ],
     hiddenimports=[
         'loguru',
