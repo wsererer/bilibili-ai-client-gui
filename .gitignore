@@ -33,4 +33,15 @@ bilibili-ai-client-gui_backup_*/
 # Test scripts (local only)
 test_*.ps1
 test_*.py
-!bilibili-ai-client-gui/tests/
+!tests/
+
+# Whisper model (large binary files)
+whisper_model/
+
+# Archives
+*.zip
+*.rar
+
+# Cache
+.pytest_cache/
+.ruff_cache/
