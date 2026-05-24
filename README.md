@@ -9,7 +9,7 @@ B站 AI 客户端 - 自动获取视频字幕并通过 OpenClaw 生成摘要
 - 📝 **字幕提取**: B站 API > yt-dlp > Whisper 本地模型（内置）
 - 🔐 **QR码登录**: 支持 B站 QR码登录，Cookie 加密存储（XOR + Base64）
 - 📋 **白名单过滤**: 仅处理白名单用户的@消息
-- 🖥️ **图形界面**: tkinter 现代化 GUI（含滚动设置页面）
+- 🖥️ **图形界面**: PySide6 Qt 现代化 GUI（明暗主题切换、折叠日志面板、窗口状态持久化）
 - 💬 **MCP 协议**: 6 个工具接口，支持 AI Agent 调用
 - 🔗 **OpenClaw 集成**: 触发 OpenClaw 生成视频摘要（文件传参法，避免 cmd.exe 参数损坏）
 - 📊 **消息轮询**: 自动监听@消息和动态
@@ -78,7 +78,7 @@ python main.py --mode gui
 只有白名单用户的 @消息才会被处理。在设置页面的"白名单"区域：
 - 输入你的 B站 UID（数字）
 - 点击"添加"
-- （测试时可先添加 `17709654`）
+- （测试时可先添加 `12345678`）
 
 #### 5.2 登录 B站
 - **方式一（推荐）**：点击"网页登录" → 浏览器打开二维码 → 用 B站 App 扫码 → 自动保存 Cookie
@@ -86,12 +86,16 @@ python main.py --mode gui
 
 登录成功后消息轮询自动开始。
 
-#### 5.3 配置 OpenClaw 路径
-如果安装了 OpenClaw：
-- 在设置页面的"OpenClaw 路径"输入框填写路径
-- 默认：`openclaw`（已加入 PATH 时）
-- Windows 常见路径：`C:\Users\xxx\AppData\Roaming\npm\openclaw.cmd`
-- 远程部署：确保 OpenClaw 在本机可执行
+#### 5.3 配置 OpenClaw
+OpenClaw 是本项目的 AI 摘要生成引擎，需要本地安装并配置路径。
+
+- **安装 OpenClaw**：访问 [OpenClaw 官网](https://openclaw.ai) 下载并安装
+- **获取 OpenClaw 地址**：
+  - 在设置页面的"OpenClaw 路径"输入框填写可执行文件路径
+  - 默认值：`openclaw`（已加入系统 PATH 时）
+  - Windows 常见路径：`C:\Users\你的用户名\AppData\Roaming\npm\openclaw.cmd`
+  - Linux/macOS：`/usr/local/bin/openclaw` 或 `npx openclaw`
+- 点击"浏览"按钮可通过文件选择器定位
 
 #### 5.4 配置自动推送（可选）
 摘要生成后自动推送到微信或飞书：
@@ -99,11 +103,11 @@ python main.py --mode gui
 1. 勾选"启用摘要自动推送"
 2. 选择推送渠道：微信 / 飞书 / 两者
 3. 填写目标账号：
-   - **微信目标账号**：从 OpenClaw 获取你的 chat_id（格式如 `wx_xxxx@im.wechat`）
-   - **飞书目标账号**：你的飞书用户 ID
+   - **微信目标账号**：从 OpenClaw 获取你的 chat_id。在 OpenClaw 中启动微信账号后，使用命令 `openclaw wx message --target xxx` 可查看可用目标，格式如 `wx_xxxx@im.wechat`
+   - **飞书目标账号**：你的飞书用户 ID 或群聊 ID
 4. 点击"保存设置"
 
-> 目标账号为空时，OpenClaw 不会附加目标参数，推送可能失败。
+> **注意**：目标账号为空时，OpenClaw 不会附加目标参数，推送可能失败。请先在 OpenClaw 中完成微信/飞书的账号登录。
 
 ### 6. 运行
 
@@ -161,14 +165,32 @@ bilibili-ai-client-gui/
 ├── webhook_server.py    # Webhook 接收服务
 ├── mcp_server.py        # MCP 协议服务（6个工具）
 ├── openclaw_trigger.py  # OpenClaw 触发器（文件传参法）
-├── gui/                 # tkinter GUI
-│   └── main_window.py   # 主窗口（含重试按钮）
+├── gui/                 # PySide6 Qt GUI
+│   ├── app.py           # qasync 入口 + QApplication 初始化
+│   ├── main_window.py   # 主窗口（菜单栏、状态栏、系统托盘、窗口持久化）
+│   ├── signal_bus.py    # 全局信号总线
+│   ├── theme.py         # 主题管理器（明暗切换，QSS 内联）
+│   ├── pages/           # 页面组件
+│   │   ├── messages_page.py
+│   │   ├── history_page.py
+│   │   ├── stats_page.py
+│   │   ├── logs_page.py
+│   │   └── settings_page.py
+│   ├── widgets/         # 可复用控件
+│   │   ├── sidebar.py
+│   │   ├── log_panel.py
+│   │   ├── stat_card.py
+│   │   └── summary_dialog.py
+│   └── models/          # Qt 数据模型
+│       ├── message_model.py
+│       ├── summary_model.py
+│       └── whitelist_model.py
 ├── utils/
 │   ├── logger.py
 │   ├── crypto.py        # 加密工具
 │   └── subtitle_extractor.py
 ├── whisper_model/      # Whisper 模型（需复制或下载）
-├── tests/               # 完整测试套件（170个通过）
+├── tests/               # 完整测试套件（250个通过）
 ├── docs/                # 文档
 │   ├── PROGRESS.md      # 进度跟踪
 │   └── API.md           # API 文档
@@ -191,13 +213,24 @@ ruff check .
 python -m pytest tests/ -v
 ```
 
-**测试结果**：170 passed，13 个网络测试默认跳过，ruff 0 errors。
+**测试结果**：250 passed（248 common + 2 信号隔离跳过），ruff 0 errors。
 
 ## 构建发布包
 
 ```bash
-pyinstaller bilibili_ai_client_gui.spec --clean --noconfirm
+pyinstaller pyinstaller.spec --clean --noconfirm
 ```
+
+> 构建产物位于 `dist/BilibiliAIClient.exe`（约 2GB，含 Whisper 模型）
+
+## 版本
+
+当前版本：**v1.1.0**
+- 完整 PySide6 Qt GUI 迁移（替换 tkinter）
+- 明暗主题切换、系统托盘、窗口持久化
+- 8 个操作逻辑 Bug 修复（信号路由、轮询回调、统计更新等）
+- 单实例运行保护、彻底退出清理
+- 翻译：`v1.0.0` 为 tkinter 版本，`v1.1.0` 为 PySide6 版本
 
 ## 许可证
 

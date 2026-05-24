@@ -1,7 +1,7 @@
 # Bilibili AI Client Dependencies
 # Python 3.11+ required
 
-# GUI (using tkinter, included in Python standard library)
+# GUI (using PySide6 Qt)
 
 # B站API
 bilibili-api>=6.4.0

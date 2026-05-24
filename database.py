@@ -234,6 +234,16 @@ class Database:
             return [dict(row) for row in cursor.fetchall()]
 
     @staticmethod
+    def delete_message(msg_id: str) -> bool:
+        try:
+            with get_db() as conn:
+                cursor = conn.cursor()
+                cursor.execute("DELETE FROM messages WHERE id = ?", (msg_id,))
+            return True
+        except Exception:
+            return False
+
+    @staticmethod
     def reset_message_status(msg_id: str, status: str = "pending") -> bool:
         try:
             with get_db() as conn:

@@ -26,7 +26,6 @@ a = Analysis(
         'sys',
         'pathlib',
         'sqlite3',
-        'tkinter',
         'config',
         'database',
         'message_poller',

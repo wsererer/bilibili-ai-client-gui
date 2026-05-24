@@ -112,7 +112,7 @@ def mock_bili_auth(monkeypatch):
 
 @pytest.fixture
 def whitelisted_uid():
-    return "17709654"
+    return "12345678"
 
 
 @pytest.fixture

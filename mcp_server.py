@@ -10,7 +10,7 @@ from utils.subtitle_extractor import subtitle_extractor
 from utils.logger import logger
 
 SERVER_NAME = "bilibili-ai-client"
-SERVER_VERSION = "1.0.0"
+SERVER_VERSION = "1.1.0"
 
 server = Server(SERVER_NAME)
 

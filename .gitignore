@@ -43,6 +43,8 @@ whisper_model/
 *.zip
 *.rar
 
+.task/
+
 # Cache
 .pytest_cache/
 .ruff_cache/
