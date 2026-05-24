@@ -147,11 +147,11 @@ Cookie 使用 XOR + Base64 加密存储在 `data/config.json`，密钥在 `data/
 | 工具 | 说明 |
 |------|------|
 | get_pending_messages | 获取待处理消息 |
-| get_stats | 获取统计信息 |
-| ack_message | 确认消息状态 |
+| get_subtitle | 获取指定 BV 号的字幕内容 |
+| ack_message | 确认消息处理状态 |
 | add_summary | 添加摘要记录 |
 | get_summary_history | 获取摘要历史 |
-| (未知工具) | 返回 error 信息 |
+| get_stats | 获取统计信息 |
 
 ## 项目结构
 

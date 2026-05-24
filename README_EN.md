@@ -146,11 +146,11 @@ Cookie is encrypted with XOR + Base64 in `data/config.json`, key in `data/.key`.
 | Tool | Description |
 |------|-------------|
 | get_pending_messages | Get pending messages |
-| get_stats | Get statistics |
-| ack_message | Confirm message status |
+| get_subtitle | Get subtitle content for a given BV ID |
+| ack_message | Confirm message processing status |
 | add_summary | Add summary record |
 | get_summary_history | Get summary history |
-| (unknown tool) | Returns error |
+| get_stats | Get statistics |
 
 ## Project Structure
 
